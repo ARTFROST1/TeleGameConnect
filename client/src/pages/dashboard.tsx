@@ -148,7 +148,7 @@ export default function Dashboard() {
                     <Users className="h-12 w-12 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Найдите партнера</h3>
-                  <p className="text-muted-foreground mb-6">Добавьте партнёра для совместных игр</p>
+                  <span className="text-muted-foreground mb-6 block">Добавьте партнёра для совместных игр</span>
                   <Link href="/find-partner">
                     <Button className="modern-button">
                       <Plus className="h-4 w-4 mr-2" />
@@ -241,32 +241,38 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Link href="/profile">
-                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
-                    <User className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Профиль</div>
-                      <div className="text-xs text-muted-foreground">Статистика и история</div>
+                <Link href="/profile" className="block">
+                  <div className="glass-card hover:glow-effect p-4 rounded-lg transition-all duration-300 hover:scale-102 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">Профиль</div>
+                        <div className="text-xs text-muted-foreground">Статистика и история</div>
+                      </div>
                     </div>
-                  </Button>
+                  </div>
                 </Link>
-                <Link href="/game-history">
-                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
-                    <History className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">История игр</div>
-                      <div className="text-xs text-muted-foreground">Прошлые игры</div>
+                <Link href="/game-history" className="block">
+                  <div className="glass-card hover:glow-effect p-4 rounded-lg transition-all duration-300 hover:scale-102 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <History className="h-5 w-5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">История игр</div>
+                        <div className="text-xs text-muted-foreground">Прошлые игры</div>
+                      </div>
                     </div>
-                  </Button>
+                  </div>
                 </Link>
-                <Link href="/statistics">
-                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
-                    <BarChart className="h-5 w-5 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Статистика</div>
-                      <div className="text-xs text-muted-foreground">Подробные данные</div>
+                <Link href="/statistics" className="block">
+                  <div className="glass-card hover:glow-effect p-4 rounded-lg transition-all duration-300 hover:scale-102 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <BarChart className="h-5 w-5 text-primary" />
+                      <div className="text-left">
+                        <div className="font-medium">Статистика</div>
+                        <div className="text-xs text-muted-foreground">Подробные данные</div>
+                      </div>
                     </div>
-                  </Button>
+                  </div>
                 </Link>
               </div>
             </CardContent>
