@@ -45,10 +45,12 @@ The application follows a monorepo structure with clear separation between clien
 - **UI Components**: Comprehensive component library using Radix UI primitives
 - **Game Logic**: Separate pages for each game type with real-time WebSocket integration
 
-### Authentication & Session Management
-- **User Sessions**: Stored in localStorage with automatic restoration
-- **Partner System**: Users can link to partners for personalized gaming
-- **Profile Management**: Avatar selection and username-based authentication
+### Authentication & Session Management  
+- **Simplified Demo Auth**: Uses `/api/auth/demo` endpoint for quick username-based login
+- **Telegram Ready**: Prepared `/api/auth/telegram` endpoint for future Telegram integration
+- **Test Partner**: Automatic test partner (ID: 999) available for game testing
+- **Partner System**: Simple partner linking with mutual connection updates
+- **Profile Management**: Avatar selection with modern animated interface
 
 ## Data Flow
 

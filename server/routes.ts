@@ -45,27 +45,59 @@ function broadcast(roomId: number, message: any, excludeUserId?: number) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
-  app.post("/api/users", async (req, res) => {
+  // Упрощённый вход для демо (без Telegram)
+  app.post("/api/auth/demo", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+      const { username, avatar = '0' } = req.body;
+      
+      // Проверяем, существует ли пользователь
+      let user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        // Создаём демо пользователя
+        const userData = {
+          telegramId: `demo_${Date.now()}`,
+          username,
+          firstName: username,
+          lastName: null,
+          avatar
+        };
+        user = await storage.createUser(userData);
       }
-      const user = await storage.createUser(userData);
+      
       res.json(user);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
     }
   });
 
-  app.post("/api/users/login", async (req, res) => {
+  // Telegram auth (готов для будущей интеграции)
+  app.post("/api/auth/telegram", async (req, res) => {
     try {
-      const { username } = z.object({ username: z.string() }).parse(req.body);
-      const user = await storage.getUserByUsername(username);
+      const { telegramId, username, firstName, lastName, avatar = '0' } = req.body;
+      
+      // Проверяем, существует ли пользователь с таким Telegram ID
+      let user = await storage.getUserByTelegramId(telegramId);
+      
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        // Создаём нового пользователя
+        const userData = {
+          telegramId,
+          username: username || firstName || 'Пользователь',
+          firstName,
+          lastName,
+          avatar
+        };
+        user = await storage.createUser(userData);
+      } else {
+        // Обновляем данные существующего пользователя
+        user = await storage.updateUser(user.id, {
+          username: username || user.username,
+          firstName,
+          lastName
+        }) || user;
       }
+      
       res.json(user);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
@@ -76,6 +108,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { q } = z.object({ q: z.string() }).parse(req.query);
       const users = await storage.findUsersByPartialUsername(q);
+      
+      // Всегда включаем тестового партнёра в результаты поиска
+      const testPartner = await storage.getUser(999);
+      if (testPartner && !users.find(u => u.id === 999)) {
+        users.unshift(testPartner);
+      }
+      
       res.json(users.slice(0, 10)); // Limit results
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Invalid query" });

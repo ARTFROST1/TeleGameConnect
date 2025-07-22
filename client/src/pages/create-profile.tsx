@@ -30,7 +30,7 @@ export default function CreateProfile() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch("/api/auth/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -4,7 +4,10 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  telegramId: text("telegram_id").unique(),
+  username: text("username").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   avatar: text("avatar").notNull(),
   partnerId: integer("partner_id"),
   gamesPlayed: integer("games_played").notNull().default(0),
@@ -34,7 +37,10 @@ export const gameAnswers = pgTable("game_answers", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  telegramId: true,
   username: true,
+  firstName: true,
+  lastName: true,
   avatar: true,
 });
 

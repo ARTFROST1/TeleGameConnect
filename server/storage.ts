@@ -4,6 +4,7 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByTelegramId(telegramId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   findUsersByPartialUsername(username: string): Promise<User[]>;
@@ -35,6 +36,25 @@ export class MemStorage implements IStorage {
     this.currentUserId = 1;
     this.currentGameRoomId = 1;
     this.currentGameAnswerId = 1;
+    
+    // Создаём тестового партнёра
+    this.initTestPartner();
+  }
+
+  private initTestPartner() {
+    const testPartner: User = {
+      id: 999,
+      telegramId: "test_partner_999",
+      username: "Тестовый Партнёр",
+      firstName: "Тест",
+      lastName: "Партнёр",
+      avatar: "0",
+      partnerId: null,
+      gamesPlayed: 25,
+      syncScore: 85,
+      createdAt: new Date()
+    };
+    this.users.set(999, testPartner);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -47,11 +67,21 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByTelegramId(telegramId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.telegramId === telegramId,
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const user: User = { 
-      ...insertUser, 
       id, 
+      telegramId: insertUser.telegramId || null,
+      username: insertUser.username,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      avatar: insertUser.avatar,
       partnerId: null,
       gamesPlayed: 0,
       syncScore: 0,
