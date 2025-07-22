@@ -55,47 +55,64 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white p-6">
+    <div className="min-h-screen bg-dark-950 text-white p-6 relative overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-accent-pink/5 pointer-events-none" />
+      
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="flex items-center mb-6"
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex items-center mb-8 relative z-10"
       >
         <Link href="/">
-          <Button variant="ghost" size="sm" className="text-accent-purple mr-4">
-            <ArrowLeft className="text-xl" />
-          </Button>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <Button variant="ghost" size="sm" className="glass-button text-accent-purple mr-4 rounded-xl p-3">
+              <ArrowLeft className="text-xl" />
+            </Button>
+          </motion.div>
         </Link>
-        <h2 className="text-2xl font-bold">Вход</h2>
+        <h2 className="text-2xl font-bold text-white">Вход</h2>
       </motion.div>
       
-      <motion.form 
+      <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        onSubmit={handleSubmit} 
-        className="space-y-6"
+        transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
+        className="modern-card p-8 relative z-10"
       >
-        <div>
-          <Label className="block text-sm font-medium mb-2">Имя пользователя</Label>
-          <Input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-dark-800 border-zinc-700 text-white focus:border-accent-purple"
-            placeholder="Введите ваше имя"
-            required
-          />
-        </div>
-        
-        <Button 
-          type="submit"
-          disabled={isLoading || !username.trim()}
-          className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white hover:scale-105 transition-transform disabled:opacity-50 disabled:transform-none"
-        >
-          {isLoading ? "Вход..." : "Войти"}
-        </Button>
-      </motion.form>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div>
+            <Label className="block text-sm font-medium mb-4 text-white">Имя пользователя</Label>
+            <Input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-white/5 border-white/20 text-white focus:border-accent-purple rounded-xl h-12 px-4 backdrop-blur-sm"
+              placeholder="Введите ваше имя"
+              required
+            />
+          </div>
+          
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              type="submit"
+              disabled={isLoading || !username.trim()}
+              className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl h-14 font-medium text-lg hover:shadow-xl hover:shadow-accent-purple/20 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+            >
+              {isLoading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                />
+              ) : (
+                "Войти"
+              )}
+            </Button>
+          </motion.div>
+        </form>
+      </motion.div>
     </div>
   );
 }

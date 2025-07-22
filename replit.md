@@ -7,6 +7,8 @@ This is a real-time multiplayer gaming application designed for couples, featuri
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Preferred design style: Modern, minimalistic with smooth purple-pink gradients.
+Focus on: Fresh, smooth, fast performance with clean aesthetics.
 
 ## System Architecture
 

@@ -6,67 +6,133 @@ import { motion } from "framer-motion";
 
 export default function Welcome() {
   return (
-    <div className="min-h-screen bg-dark-900 text-white p-6 flex flex-col justify-center">
+    <div className="min-h-screen bg-dark-950 text-white p-6 flex flex-col justify-center relative overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-accent-pink/5 pointer-events-none" />
+      
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-8"
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-center mb-12 relative z-10"
       >
         <motion.div 
-          animate={{ 
-            boxShadow: [
-              "0 0 5px hsl(271, 81%, 56%), 0 0 10px hsl(271, 81%, 56%)",
-              "0 0 10px hsl(271, 81%, 56%), 0 0 20px hsl(271, 81%, 56%), 0 0 30px hsl(271, 81%, 56%)",
-              "0 0 5px hsl(271, 81%, 56%), 0 0 10px hsl(271, 81%, 56%)"
-            ]
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ 
+            duration: 0.8, 
+            ease: "easeOut",
+            delay: 0.2
           }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-accent-purple to-accent-pink rounded-full flex items-center justify-center"
+          className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-accent-purple to-accent-pink rounded-3xl flex items-center justify-center shadow-2xl relative"
         >
-          <Heart className="text-3xl text-white" fill="white" />
+          <motion.div
+            animate={{ 
+              scale: [1, 1.05, 1],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ 
+              duration: 4, 
+              repeat: Infinity, 
+              ease: "easeInOut"
+            }}
+          >
+            <Heart className="text-3xl text-white" fill="white" />
+          </motion.div>
+          
+          {/* Floating particles */}
+          <motion.div
+            animate={{ 
+              opacity: [0.3, 0.8, 0.3],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{ 
+              duration: 3, 
+              repeat: Infinity, 
+              ease: "easeInOut"
+            }}
+            className="absolute -top-2 -right-2 w-4 h-4 bg-accent-pink/50 rounded-full blur-sm"
+          />
+          <motion.div
+            animate={{ 
+              opacity: [0.3, 0.8, 0.3],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{ 
+              duration: 3, 
+              repeat: Infinity, 
+              ease: "easeInOut",
+              delay: 1.5
+            }}
+            className="absolute -bottom-2 -left-2 w-3 h-3 bg-accent-purple/50 rounded-full blur-sm"
+          />
         </motion.div>
-        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-accent-purple to-accent-pink bg-clip-text text-transparent">
+        
+        <motion.h1 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="text-4xl font-bold mb-3 bg-gradient-to-r from-accent-purple via-purple-400 to-accent-pink bg-clip-text text-transparent"
+        >
           Couple Games
-        </h1>
-        <p className="text-zinc-400 text-lg">Играйте и общайтесь вместе</p>
+        </motion.h1>
+        <motion.p 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="text-gray-400 text-lg font-light"
+        >
+          Играйте и общайтесь вместе
+        </motion.p>
       </motion.div>
       
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="space-y-4"
+        transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+        className="space-y-6 relative z-10"
       >
-        <div className="gradient-border">
-          <div className="gradient-border-content p-6">
-            <h3 className="font-semibold mb-2 flex items-center">
-              <i className="fas fa-user-plus mr-2 text-accent-purple"></i>
-              Новый игрок
-            </h3>
-            <p className="text-zinc-400 text-sm mb-4">Создайте профиль и начните играть</p>
-            <Link href="/create-profile">
-              <Button className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white hover:scale-105 transition-transform">
-                Создать профиль
-              </Button>
-            </Link>
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="modern-card p-8"
+        >
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-accent-purple to-purple-600 rounded-2xl flex items-center justify-center mr-4">
+              <Heart className="text-xl text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-white">Новый игрок</h3>
+              <p className="text-gray-400 text-sm">Создайте профиль и начните играть</p>
+            </div>
           </div>
-        </div>
+          <Link href="/create-profile">
+            <Button className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl h-12 font-medium hover:shadow-lg hover:shadow-accent-purple/20 transition-all duration-300">
+              Создать профиль
+            </Button>
+          </Link>
+        </motion.div>
         
-        <div className="gradient-border">
-          <div className="gradient-border-content p-6">
-            <h3 className="font-semibold mb-2 flex items-center">
-              <i className="fas fa-sign-in-alt mr-2 text-accent-pink"></i>
-              Уже есть аккаунт
-            </h3>
-            <p className="text-zinc-400 text-sm mb-4">Войдите в свой профиль</p>
-            <Link href="/login">
-              <Button variant="outline" className="w-full border-accent-purple text-accent-purple hover:bg-accent-purple hover:text-white">
-                Войти
-              </Button>
-            </Link>
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="modern-card p-8"
+        >
+          <div className="flex items-center mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-accent-pink to-pink-600 rounded-2xl flex items-center justify-center mr-4">
+              <Heart className="text-xl text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-white">Уже есть аккаунт</h3>
+              <p className="text-gray-400 text-sm">Войдите в свой профиль</p>
+            </div>
           </div>
-        </div>
+          <Link href="/login">
+            <Button className="w-full glass-button text-white rounded-xl h-12 font-medium hover:shadow-lg hover:shadow-accent-pink/10 transition-all duration-300">
+              Войти
+            </Button>
+          </Link>
+        </motion.div>
       </motion.div>
     </div>
   );

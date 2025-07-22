@@ -365,7 +365,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     ws.on('close', () => {
       // Remove client from clients map
-      for (const [userId, client] of clients.entries()) {
+      const clientEntries = Array.from(clients.entries());
+      for (const [userId, client] of clientEntries) {
         if (client.ws === ws) {
           clients.delete(userId);
           break;

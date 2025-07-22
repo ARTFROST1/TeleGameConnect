@@ -82,7 +82,8 @@ export class MemStorage implements IStorage {
       ...insertGameRoom,
       id,
       status: "waiting",
-      createdAt: new Date()
+      createdAt: new Date(),
+      gameData: insertGameRoom.gameData || null
     };
     this.gameRooms.set(id, gameRoom);
     return gameRoom;
@@ -114,7 +115,9 @@ export class MemStorage implements IStorage {
     const gameAnswer: GameAnswer = {
       ...insertGameAnswer,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      completed: insertGameAnswer.completed || false,
+      answer: insertGameAnswer.answer || null
     };
     this.gameAnswers.set(id, gameAnswer);
     return gameAnswer;
