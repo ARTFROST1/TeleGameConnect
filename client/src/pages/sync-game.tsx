@@ -137,7 +137,7 @@ export default function SyncGame() {
 
   if (!currentUser || !partner) {
     return (
-      <div className="min-h-screen bg-dark-900 text-white p-6 flex items-center justify-center">
+      <div className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center">
           <p className="text-zinc-400">Для игры нужен партнёр</p>
           <Link href="/dashboard">
@@ -165,7 +165,7 @@ export default function SyncGame() {
   const Player2Icon = avatarIcons[parseInt(partner.avatar) || 0];
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white p-6">
+    <div className="min-h-screen p-6">
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}

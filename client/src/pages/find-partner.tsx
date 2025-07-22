@@ -173,14 +173,14 @@ export default function FindPartner() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-white/5 border-white/20 text-white focus:border-accent-purple rounded-xl h-12 px-4 backdrop-blur-sm"
+                className="flex-1 rounded-xl h-12"
                 placeholder="Введите имя пользователя"
               />
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
                   type="submit"
                   disabled={isSearching}
-                  className="bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl h-12 px-6 hover:shadow-lg hover:shadow-accent-purple/20"
+                  className="modern-button rounded-xl h-12 px-6"
                 >
                   {isSearching ? <Loader className="animate-spin" size={16} /> : <Search size={16} />}
                 </Button>
@@ -194,9 +194,9 @@ export default function FindPartner() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="modern-card p-6"
+            className="glass-card p-6"
           >
-            <h3 className="font-semibold text-lg text-white mb-6">Найденные игроки</h3>
+            <h3 className="font-semibold text-lg mb-6">Найденные игроки</h3>
             <div className="space-y-4">
               {searchResults.map((user, index) => {
                 const UserIcon = avatarIcons[parseInt(user.avatar) || 0];
@@ -210,7 +210,7 @@ export default function FindPartner() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 * index }}
                     whileHover={{ scale: 1.02, y: -2 }}
-                    className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 group cursor-pointer"
+                    className="flex items-center justify-between p-4 glass-card group cursor-pointer"
                   >
                     <div className="flex items-center">
                       <motion.div 
@@ -221,14 +221,14 @@ export default function FindPartner() {
                       </motion.div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-white">{user.username}</p>
+                          <p className="font-medium">{user.username}</p>
                           {isTestPartner && (
                             <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg border border-green-500/30">
                               DEMO
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-muted-foreground text-sm">
                           {isTestPartner ? `${user.gamesPlayed} игр • ${user.syncScore}% синхрон` : `ID: #${user.id}`}
                         </p>
                       </div>
@@ -237,7 +237,7 @@ export default function FindPartner() {
                       <Button
                         onClick={() => addPartner(user.id)}
                         disabled={isAdding === user.id}
-                        className="bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl px-6 py-2 font-medium hover:shadow-lg hover:shadow-accent-purple/20 transition-all duration-300 disabled:transform-none"
+                        className="modern-button px-6 py-2 rounded-xl font-medium"
                         size="sm"
                       >
                         {isAdding === user.id ? 
@@ -255,7 +255,7 @@ export default function FindPartner() {
         
         {!isSearching && searchQuery && searchResults.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-zinc-400">Пользователи не найдены</p>
+            <p className="text-muted-foreground">Пользователи не найдены</p>
           </div>
         )}
       </motion.div>

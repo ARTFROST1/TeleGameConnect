@@ -67,47 +67,45 @@ export default function CreateProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 text-white p-6 relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-accent-pink/5 pointer-events-none" />
+    <div className="min-h-screen p-6 relative overflow-hidden">
       
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex items-center mb-8 relative z-10"
+        className="flex items-center mb-8"
       >
         <Link href="/">
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button variant="ghost" size="sm" className="glass-button text-accent-purple mr-4 rounded-xl p-3">
+            <Button variant="ghost" size="sm" className="rounded-xl p-3 mr-4">
               <ArrowLeft className="text-xl" />
             </Button>
           </motion.div>
         </Link>
-        <h2 className="text-2xl font-bold text-white">Создание профиля</h2>
+        <h2 className="text-2xl font-bold text-gradient">Создание профиля</h2>
       </motion.div>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-        className="modern-card p-8 relative z-10"
+        className="glass-card p-8"
       >
         <form onSubmit={handleSubmit} className="space-y-8">
           <div>
-            <Label className="block text-sm font-medium mb-4 text-white">Ваше имя</Label>
+            <Label className="block text-sm font-medium mb-4">Ваше имя</Label>
             <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white/5 border-white/20 text-white focus:border-accent-purple rounded-xl h-12 px-4 backdrop-blur-sm"
+              className="rounded-xl h-12"
               placeholder="Введите ваше имя"
               required
             />
           </div>
           
           <div>
-            <Label className="block text-sm font-medium mb-4 text-white">Выберите аватар</Label>
+            <Label className="block text-sm font-medium mb-4">Выберите аватар</Label>
             <div className="grid grid-cols-4 gap-4">
               {avatarOptions.map((avatar, index) => {
                 const IconComponent = avatar.icon;
@@ -118,8 +116,8 @@ export default function CreateProfile() {
                     whileTap={{ scale: 0.95 }}
                     className={`aspect-square bg-gradient-to-br ${avatar.gradient} rounded-3xl flex items-center justify-center cursor-pointer border-2 transition-all duration-300 ${
                       selectedAvatar === index 
-                        ? 'border-accent-purple shadow-xl shadow-accent-purple/30 scale-105' 
-                        : 'border-white/20 hover:border-accent-purple/50 hover:shadow-lg'
+                        ? 'border-primary shadow-xl shadow-primary/30 scale-105' 
+                        : 'border-border hover:border-primary/50 hover:shadow-lg'
                     }`}
                     onClick={() => setSelectedAvatar(index)}
                   >
@@ -134,7 +132,7 @@ export default function CreateProfile() {
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-6 h-6 bg-accent-purple rounded-full flex items-center justify-center"
+                        className="absolute -top-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center"
                       >
                         <Heart className="text-white text-xs" fill="white" />
                       </motion.div>
@@ -149,7 +147,7 @@ export default function CreateProfile() {
             <Button 
               type="submit"
               disabled={isLoading || !username.trim()}
-              className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl h-14 font-medium text-lg hover:shadow-xl hover:shadow-accent-purple/20 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+              className="w-full modern-button rounded-xl h-14 font-medium text-lg disabled:opacity-50"
             >
               {isLoading ? (
                 <motion.div
