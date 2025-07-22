@@ -46,11 +46,19 @@ The application follows a monorepo structure with clear separation between clien
 - **Game Logic**: Separate pages for each game type with real-time WebSocket integration
 
 ### Authentication & Session Management  
+- **One-Click Entry**: Single "Начать" button automatically creates user and enters app
+- **Auto Username Generation**: Generates random username (UserXXXX format) for immediate access
 - **Simplified Demo Auth**: Uses `/api/auth/demo` endpoint for quick username-based login
 - **Telegram Ready**: Prepared `/api/auth/telegram` endpoint for future Telegram integration
 - **Test Partner**: Automatic test partner (ID: 999) available for game testing
 - **Partner System**: Simple partner linking with mutual connection updates
 - **Profile Management**: Avatar selection with modern animated interface
+
+## Recent Changes (January 22, 2025)
+- Simplified welcome screen: Removed choice between "новый игрок" and "уже есть аккаунт"
+- Added one-click automatic entry with "Начать" button
+- Auto-generates random usernames for immediate app access
+- Improved user experience by eliminating registration friction
 
 ## Data Flow
 

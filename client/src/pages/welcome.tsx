@@ -1,10 +1,55 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { useState } from "react";
+import { useGame } from "@/contexts/GameContext";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Welcome() {
+  const [, navigate] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  const { setCurrentUser } = useGame();
+  const { toast } = useToast();
+
+  const handleStart = async () => {
+    setIsLoading(true);
+    try {
+      // Генерируем случайное имя пользователя
+      const randomUsername = `User${Math.floor(Math.random() * 10000)}`;
+      
+      const response = await fetch("/api/auth/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: randomUsername }),
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        setCurrentUser(user);
+        navigate("/dashboard");
+        toast({
+          title: "Добро пожаловать!",
+          description: `Начинаем играть, ${user.username}`,
+        });
+      } else {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось войти в приложение",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Проблема с подключением к серверу",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-6 flex flex-col justify-center relative overflow-hidden">
       {/* Background will be applied via body CSS */}
@@ -96,41 +141,33 @@ export default function Welcome() {
           whileTap={{ scale: 0.98 }}
           className="glass-card p-8"
         >
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-6">
             <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center mr-4">
               <Heart className="text-xl text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">Новый игрок</h3>
-              <p className="text-muted-foreground text-sm">Создайте профиль и начните играть</p>
+              <h3 className="font-semibold text-lg">Начать играть</h3>
+              <p className="text-muted-foreground text-sm">Автоматический вход в приложение</p>
             </div>
           </div>
-          <Link href="/create-profile">
-            <Button className="w-full modern-button rounded-xl h-12 font-medium">
-              Создать профиль
+          
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={handleStart}
+              disabled={isLoading}
+              className="w-full modern-button rounded-xl h-14 font-medium text-lg disabled:opacity-50"
+            >
+              {isLoading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                />
+              ) : (
+                "Начать"
+              )}
             </Button>
-          </Link>
-        </motion.div>
-        
-        <motion.div 
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="glass-card p-8"
-        >
-          <div className="flex items-center mb-4">
-            <div className="w-12 h-12 bg-gradient-secondary rounded-2xl flex items-center justify-center mr-4">
-              <Heart className="text-xl text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Уже есть аккаунт</h3>
-              <p className="text-muted-foreground text-sm">Войдите в свой профиль</p>
-            </div>
-          </div>
-          <Link href="/login">
-            <Button variant="outline" className="w-full rounded-xl h-12 font-medium border-primary/20 hover:bg-primary/10">
-              Войти
-            </Button>
-          </Link>
+          </motion.div>
         </motion.div>
       </motion.div>
     </div>
