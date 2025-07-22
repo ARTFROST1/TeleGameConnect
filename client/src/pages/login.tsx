@@ -55,40 +55,38 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 text-white p-6 relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-accent-pink/5 pointer-events-none" />
+    <div className="min-h-screen p-6 relative overflow-hidden">
       
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex items-center mb-8 relative z-10"
+        className="flex items-center mb-8"
       >
         <Link href="/">
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button variant="ghost" size="sm" className="glass-button text-accent-purple mr-4 rounded-xl p-3">
+            <Button variant="ghost" size="sm" className="rounded-xl p-3 mr-4">
               <ArrowLeft className="text-xl" />
             </Button>
           </motion.div>
         </Link>
-        <h2 className="text-2xl font-bold text-white">Вход</h2>
+        <h2 className="text-2xl font-bold text-gradient">Вход</h2>
       </motion.div>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-        className="modern-card p-8 relative z-10"
+        className="glass-card p-8"
       >
         <form onSubmit={handleSubmit} className="space-y-8">
           <div>
-            <Label className="block text-sm font-medium mb-4 text-white">Имя пользователя</Label>
+            <Label className="block text-sm font-medium mb-4">Имя пользователя</Label>
             <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white/5 border-white/20 text-white focus:border-accent-purple rounded-xl h-12 px-4 backdrop-blur-sm"
+              className="rounded-xl h-12"
               placeholder="Введите ваше имя"
               required
             />
@@ -98,7 +96,7 @@ export default function Login() {
             <Button 
               type="submit"
               disabled={isLoading || !username.trim()}
-              className="w-full bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-xl h-14 font-medium text-lg hover:shadow-xl hover:shadow-accent-purple/20 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+              className="w-full modern-button rounded-xl h-14 font-medium text-lg disabled:opacity-50"
             >
               {isLoading ? (
                 <motion.div

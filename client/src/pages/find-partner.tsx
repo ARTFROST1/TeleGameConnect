@@ -118,46 +118,44 @@ export default function FindPartner() {
   }, [currentUser?.id]);
 
   return (
-    <div className="min-h-screen bg-dark-950 text-white p-6 relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/5 via-transparent to-accent-pink/5 pointer-events-none" />
+    <div className="min-h-screen p-6 relative overflow-hidden">
       
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex items-center mb-8 relative z-10"
+        className="flex items-center mb-8"
       >
         <Link href="/dashboard">
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button variant="ghost" size="sm" className="glass-button text-accent-purple mr-4 rounded-xl p-3">
+            <Button variant="ghost" size="sm" className="rounded-xl p-3 mr-4">
               <ArrowLeft className="text-xl" />
             </Button>
           </motion.div>
         </Link>
-        <h2 className="text-2xl font-bold text-white">Найти партнёра</h2>
+        <h2 className="text-2xl font-bold text-gradient">Найти партнёра</h2>
       </motion.div>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-        className="space-y-8 relative z-10"
+        className="space-y-8"
       >
         {/* Информация о тестовом режиме */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="modern-card p-6"
+          className="glass-card p-6"
         >
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mr-3">
+            <div className="w-10 h-10 bg-gradient-secondary rounded-2xl flex items-center justify-center mr-3">
               <Heart className="text-white" size={18} />
             </div>
-            <h3 className="font-semibold text-lg text-white">Тестовый режим</h3>
+            <h3 className="font-semibold text-lg">Тестовый режим</h3>
           </div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             Пока приложение работает в демо режиме. Вы можете добавить тестового партнёра для проверки игр.
           </p>
         </motion.div>
@@ -166,9 +164,9 @@ export default function FindPartner() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          className="modern-card p-6"
+          className="glass-card p-6"
         >
-          <h3 className="font-semibold text-lg text-white mb-6">Поиск партнёра</h3>
+          <h3 className="font-semibold text-lg mb-6">Поиск партнёра</h3>
           <form onSubmit={handleSearch}>
             <div className="flex gap-3">
               <Input
