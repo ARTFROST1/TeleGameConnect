@@ -13,6 +13,7 @@ import TruthOrDare from "@/pages/truth-or-dare";
 import SyncGame from "@/pages/sync-game";
 import Statistics from "@/pages/statistics";
 import GameHistory from "@/pages/game-history";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/sync-game" component={SyncGame} />
       <Route path="/statistics" component={Statistics} />
       <Route path="/game-history" component={GameHistory} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

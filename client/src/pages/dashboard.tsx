@@ -78,204 +78,200 @@ export default function Dashboard() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
+            className="flex items-center gap-2"
           >
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Link href="/profile">
+              <Button variant="ghost" size="icon" className="rounded-full glass-card hover:glow-effect">
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Button variant="ghost" size="icon" className="rounded-full glass-card">
               <Settings className="h-5 w-5" />
             </Button>
           </motion.div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Partner Card */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
-          >
-            <Card className="h-full">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Партнёр
-                  </CardTitle>
-                  <Link href="/find-partner">
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {partner ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-400/10 dark:to-pink-400/10 rounded-lg"
-                  >
-                    <div className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(partner.avatar) || 0]}`}>
-                      {PartnerIcon && <PartnerIcon className="h-5 w-5 text-white" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{partner.username}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        Онлайн
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="text-center py-8"
-                  >
-                    <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
-                      <Users className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground text-sm">Добавьте партнёра для игры</p>
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Quick Stats */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-          >
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-500" />
-                  Статистика
+        {/* Partner Card */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.6 }}
+          className="mb-6"
+        >
+          <Card className="glass-card">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-gradient">
+                  <Users className="h-5 w-5" />
+                  Партнёр
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-400/10 dark:to-pink-400/10 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {(user as any).gamesPlayed}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Игр</div>
-                  </div>
-                  <div className="text-center p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-400/10 dark:to-cyan-400/10 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {(user as any).syncScore}%
-                    </div>
-                    <div className="text-xs text-muted-foreground">Синхрон</div>
-                  </div>
-                </div>
-                <Link href="/statistics">
-                  <Button variant="outline" className="w-full" size="sm">
-                    <BarChart className="h-4 w-4 mr-2" />
-                    Подробная статистика
+                <Link href="/find-partner">
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Games Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="md:col-span-2"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircleQuestion className="h-5 w-5" />
-                  Игры
-                </CardTitle>
-                <CardDescription>Выберите игру для начала</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Link href="/truth-or-dare">
-                    <motion.div 
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="p-6 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <motion.div 
-                          whileHover={{ rotate: 10 }}
-                          className="p-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-                        >
-                          <Zap className="h-5 w-5 text-white" />
-                        </motion.div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-lg mb-1">Правда или Действие</h4>
-                          <p className="text-sm text-muted-foreground">Классическая игра в онлайн формате</p>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
-                    </motion.div>
-                  </Link>
-                  
-                  <Link href="/sync-game">
-                    <motion.div 
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="p-6 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <motion.div 
-                          whileHover={{ rotate: -10 }}
-                          className="p-3 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"
-                        >
-                          <Heart className="h-5 w-5 text-white" />
-                        </motion.div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-lg mb-1">Синхронизация</h4>
-                          <p className="text-sm text-muted-foreground">Проверьте насколько вы совпадаете</p>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
-                    </motion.div>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Additional Features */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="md:col-span-2"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Дополнительно</CardTitle>
-                <CardDescription>Исследуйте больше возможностей</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Link href="/game-history">
-                    <Button variant="outline" className="w-full justify-start" size="lg">
-                      <History className="h-4 w-4 mr-2" />
-                      История игр
+              </div>
+            </CardHeader>
+            <CardContent>
+              {partner ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-gradient-primary/10 border border-primary/20"
+                >
+                  <div className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(partner.avatar) || 0]} floating-animation`}>
+                    {PartnerIcon && <PartnerIcon className="h-5 w-5 text-white" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg">{partner.username}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
+                      Онлайн
+                    </p>
+                  </div>
+                  <Link href="/profile">
+                    <Button variant="outline" size="sm" className="hover:bg-primary/10">
+                      <User className="h-4 w-4 mr-2" />
+                      Профиль
                     </Button>
                   </Link>
-                  <Link href="/statistics">
-                    <Button variant="outline" className="w-full justify-start" size="lg">
-                      <BarChart className="h-4 w-4 mr-2" />
-                      Подробная статистика
+                </motion.div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="text-center py-12"
+                >
+                  <div className="p-6 rounded-full bg-gradient-primary/10 w-fit mx-auto mb-6">
+                    <Users className="h-12 w-12 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Найдите партнера</h3>
+                  <p className="text-muted-foreground mb-6">Добавьте партнёра для совместных игр</p>
+                  <Link href="/find-partner">
+                    <Button className="modern-button">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Найти партнера
                     </Button>
                   </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Games Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="mb-6"
+        >
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-gradient">
+                <MessageCircleQuestion className="h-5 w-5" />
+                Игры
+              </CardTitle>
+              <CardDescription>Выберите игру для начала</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Link href="/truth-or-dare">
+                  <motion.div 
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="glass-card p-6 cursor-pointer group relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <div className="relative flex items-center gap-4">
+                      <motion.div 
+                        whileHover={{ rotate: 15, scale: 1.1 }}
+                        className="p-4 rounded-2xl bg-gradient-primary glow-effect"
+                      >
+                        <Zap className="h-6 w-6 text-white" />
+                      </motion.div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-xl mb-2 text-gradient">Правда или Действие</h4>
+                        <p className="text-sm text-muted-foreground">Классическая игра в современном формате</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                  </motion.div>
+                </Link>
+                
+                <Link href="/sync-game">
+                  <motion.div 
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="glass-card p-6 cursor-pointer group relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-secondary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <div className="relative flex items-center gap-4">
+                      <motion.div 
+                        whileHover={{ rotate: -15, scale: 1.1 }}
+                        className="p-4 rounded-2xl bg-gradient-secondary glow-effect"
+                      >
+                        <Heart className="h-6 w-6 text-white" />
+                      </motion.div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-xl mb-2 text-gradient">Синхронизация</h4>
+                        <p className="text-sm text-muted-foreground">Проверьте насколько вы совпадаете</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                  </motion.div>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Quick Access */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-gradient">Быстрый доступ</CardTitle>
+              <CardDescription>Управляйте своим профилем и просматривайте статистику</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/profile">
+                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
+                    <User className="h-5 w-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Профиль</div>
+                      <div className="text-xs text-muted-foreground">Статистика и история</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/game-history">
+                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
+                    <History className="h-5 w-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">История игр</div>
+                      <div className="text-xs text-muted-foreground">Прошлые игры</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link href="/statistics">
+                  <Button variant="outline" className="w-full justify-start h-16 glass-card hover:glow-effect">
+                    <BarChart className="h-5 w-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Статистика</div>
+                      <div className="text-xs text-muted-foreground">Подробные данные</div>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );
