@@ -374,6 +374,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const telegramUser = JSON.parse(userStr);
       const telegramId = telegramUser.id.toString();
       const username = telegramUser.username || telegramUser.first_name || `User${telegramUser.id}`;
+      const firstName = telegramUser.first_name || null;
+      const lastName = telegramUser.last_name || null;
 
       // Check if user exists
       let user = await storage.getUserByTelegramId(telegramId);
@@ -383,8 +385,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const userData = {
           telegramId,
           username,
-          firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name,
+          firstName,
+          lastName,
           avatar: Math.floor(Math.random() * 4).toString()
         };
         user = await storage.createUser(userData);
@@ -392,14 +394,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing user data
         user = await storage.updateUser(user.id, {
           username: username || user.username,
-          firstName: telegramUser.first_name || user.firstName,
-          lastName: telegramUser.last_name || user.lastName
+          firstName: firstName || user.firstName,
+          lastName: lastName || user.lastName
         }) || user;
       }
       
       res.json(user);
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
+      console.error('Telegram auth error:', error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Authentication failed" });
     }
   });
 
