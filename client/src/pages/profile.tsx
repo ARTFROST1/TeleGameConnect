@@ -55,7 +55,7 @@ export default function Profile() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="glass-card w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">Пожалуйста, войдите в систему</p>
+            <p className="text-gray-300">Пожалуйста, войдите в систему</p>
             <Link href="/login">
               <Button className="mt-4 modern-button">Войти</Button>
             </Link>

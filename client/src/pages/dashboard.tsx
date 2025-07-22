@@ -125,7 +125,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-lg">{partner.username}</p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <p className="text-sm text-gray-300 flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
                       Онлайн
                     </p>
@@ -148,7 +148,7 @@ export default function Dashboard() {
                     <Users className="h-12 w-12 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Найдите партнера</h3>
-                  <span className="text-muted-foreground mb-6 block">Добавьте партнёра для совместных игр</span>
+                  <span className="text-gray-300 mb-6 block">Добавьте партнёра для совместных игр</span>
                   <Link href="/find-partner">
                     <Button className="modern-button">
                       <Plus className="h-4 w-4 mr-2" />
@@ -174,7 +174,7 @@ export default function Dashboard() {
                 <MessageCircleQuestion className="h-5 w-5" />
                 Игры
               </CardTitle>
-              <CardDescription>Выберите игру для начала</CardDescription>
+              <CardDescription className="text-gray-300">Выберите игру для начала</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -194,9 +194,9 @@ export default function Dashboard() {
                       </motion.div>
                       <div className="flex-1">
                         <h4 className="font-bold text-xl mb-2 text-gradient">Правда или Действие</h4>
-                        <p className="text-sm text-muted-foreground">Классическая игра в современном формате</p>
+                        <p className="text-sm text-gray-300">Классическая игра в современном формате</p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
                     </div>
                   </motion.div>
                 </Link>
@@ -217,9 +217,9 @@ export default function Dashboard() {
                       </motion.div>
                       <div className="flex-1">
                         <h4 className="font-bold text-xl mb-2 text-gradient">Синхронизация</h4>
-                        <p className="text-sm text-muted-foreground">Проверьте насколько вы совпадаете</p>
+                        <p className="text-sm text-gray-300">Проверьте насколько вы совпадаете</p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
                     </div>
                   </motion.div>
                 </Link>
@@ -237,7 +237,7 @@ export default function Dashboard() {
           <Card className="glass-card">
             <CardHeader>
               <CardTitle className="text-gradient">Быстрый доступ</CardTitle>
-              <CardDescription>Управляйте своим профилем и просматривайте статистику</CardDescription>
+              <CardDescription className="text-gray-300">Управляйте своим профилем и просматривайте статистику</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -247,7 +247,7 @@ export default function Dashboard() {
                       <User className="h-5 w-5 text-primary" />
                       <div className="text-left">
                         <div className="font-medium text-[#ffffff]">Профиль</div>
-                        <div className="text-xs text-muted-foreground">Статистика и история</div>
+                        <div className="text-xs text-gray-400">Статистика и история</div>
                       </div>
                     </div>
                   </div>
@@ -258,7 +258,7 @@ export default function Dashboard() {
                       <History className="h-5 w-5 text-primary" />
                       <div className="text-left">
                         <div className="font-medium">История игр</div>
-                        <div className="text-xs text-muted-foreground">Прошлые игры</div>
+                        <div className="text-xs text-gray-400">Прошлые игры</div>
                       </div>
                     </div>
                   </div>
@@ -269,7 +269,7 @@ export default function Dashboard() {
                       <BarChart className="h-5 w-5 text-primary" />
                       <div className="text-left">
                         <div className="font-medium">Статистика</div>
-                        <div className="text-xs text-muted-foreground">Подробные данные</div>
+                        <div className="text-xs text-gray-400">Подробные данные</div>
                       </div>
                     </div>
                   </div>

@@ -23,7 +23,7 @@ export default function Statistics() {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-purple-950 dark:via-pink-950 dark:to-purple-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">Пожалуйста, войдите в систему</p>
+            <p className="text-gray-300">Пожалуйста, войдите в систему</p>
             <Link href="/login">
               <Button className="mt-4">Войти</Button>
             </Link>
@@ -50,7 +50,7 @@ export default function Statistics() {
             <h1 className="text-3xl font-bold text-gradient">
               Статистика
             </h1>
-            <p className="text-muted-foreground">Ваши достижения в играх</p>
+            <p className="text-gray-300">Ваши достижения в играх</p>
           </div>
         </div>
 
@@ -100,13 +100,13 @@ export default function Statistics() {
                     <div className="text-2xl font-bold text-primary">
                       {Math.round(currentUser.gamesPlayed * 0.7)}
                     </div>
-                    <div className="text-xs text-muted-foreground">Правда</div>
+                    <div className="text-xs text-gray-400">Правда</div>
                   </div>
                   <div className="text-center p-3 bg-gradient-secondary/10 rounded-lg">
                     <div className="text-2xl font-bold text-primary">
                       {Math.round(currentUser.gamesPlayed * 0.3)}
                     </div>
-                    <div className="text-xs text-muted-foreground">Действие</div>
+                    <div className="text-xs text-gray-400">Действие</div>
                   </div>
                 </div>
               </CardContent>
@@ -159,13 +159,13 @@ export default function Statistics() {
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {Math.round(partner.gamesPlayed * 0.7)}
                       </div>
-                      <div className="text-xs text-muted-foreground">Правда</div>
+                      <div className="text-xs text-gray-400">Правда</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-r from-pink-500/10 to-purple-500/10 dark:from-pink-400/10 dark:to-purple-400/10 rounded-lg">
                       <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
                         {Math.round(partner.gamesPlayed * 0.3)}
                       </div>
-                      <div className="text-xs text-muted-foreground">Действие</div>
+                      <div className="text-xs text-gray-400">Действие</div>
                     </div>
                   </div>
                 </CardContent>
@@ -191,35 +191,35 @@ export default function Statistics() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className={`p-4 rounded-lg text-center ${currentUser.gamesPlayed >= 1 ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 dark:from-green-400/20 dark:to-emerald-400/20' : 'bg-muted/50'}`}>
-                    <div className={`text-2xl mb-2 ${currentUser.gamesPlayed >= 1 ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    <div className={`text-2xl mb-2 ${currentUser.gamesPlayed >= 1 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
                       🎮
                     </div>
                     <div className="text-sm font-medium">Первая игра</div>
-                    <div className="text-xs text-muted-foreground">Сыграйте в первую игру</div>
+                    <div className="text-xs text-gray-400">Сыграйте в первую игру</div>
                   </div>
 
                   <div className={`p-4 rounded-lg text-center ${currentUser.gamesPlayed >= 5 ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 dark:from-blue-400/20 dark:to-cyan-400/20' : 'bg-muted/50'}`}>
-                    <div className={`text-2xl mb-2 ${currentUser.gamesPlayed >= 5 ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
+                    <div className={`text-2xl mb-2 ${currentUser.gamesPlayed >= 5 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500'}`}>
                       🏆
                     </div>
                     <div className="text-sm font-medium">Игрок</div>
-                    <div className="text-xs text-muted-foreground">Сыграйте 5 игр</div>
+                    <div className="text-xs text-gray-400">Сыграйте 5 игр</div>
                   </div>
 
                   <div className={`p-4 rounded-lg text-center ${currentUser.syncScore >= 70 ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 dark:from-purple-400/20 dark:to-pink-400/20' : 'bg-muted/50'}`}>
-                    <div className={`text-2xl mb-2 ${currentUser.syncScore >= 70 ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>
+                    <div className={`text-2xl mb-2 ${currentUser.syncScore >= 70 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'}`}>
                       💕
                     </div>
                     <div className="text-sm font-medium">Синхрон</div>
-                    <div className="text-xs text-muted-foreground">70% синхронизации</div>
+                    <div className="text-xs text-gray-400">70% синхронизации</div>
                   </div>
 
                   <div className={`p-4 rounded-lg text-center ${partner ? 'bg-gradient-to-r from-red-500/20 to-pink-500/20 dark:from-red-400/20 dark:to-pink-400/20' : 'bg-muted/50'}`}>
-                    <div className={`text-2xl mb-2 ${partner ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                    <div className={`text-2xl mb-2 ${partner ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}`}>
                       ❤️
                     </div>
                     <div className="text-sm font-medium">Связь</div>
-                    <div className="text-xs text-muted-foreground">Найдите партнера</div>
+                    <div className="text-xs text-gray-400">Найдите партнера</div>
                   </div>
                 </div>
               </CardContent>

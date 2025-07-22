@@ -124,7 +124,7 @@ export default function Welcome() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="text-muted-foreground text-lg font-light"
+          className="text-gray-300 text-lg font-light"
         >
           Играйте и общайтесь вместе
         </motion.p>
@@ -147,7 +147,7 @@ export default function Welcome() {
             </div>
             <div>
               <h3 className="font-semibold text-lg">Начать играть</h3>
-              <p className="text-muted-foreground text-sm">Автоматический вход в приложение</p>
+              <p className="text-gray-300 text-sm">Автоматический вход в приложение</p>
             </div>
           </div>
           

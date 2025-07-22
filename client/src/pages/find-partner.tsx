@@ -153,7 +153,7 @@ export default function FindPartner() {
             </div>
             <h3 className="font-semibold text-lg">Тестовый режим</h3>
           </div>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-gray-300 text-sm">
             Пока приложение работает в демо режиме. Вы можете добавить тестового партнёра для проверки игр.
           </p>
         </motion.div>
@@ -226,7 +226,7 @@ export default function FindPartner() {
                             </span>
                           )}
                         </div>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-gray-300 text-sm">
                           {isTestPartner ? `${user.gamesPlayed} игр • ${user.syncScore}% синхрон` : `ID: #${user.id}`}
                         </p>
                       </div>
@@ -253,7 +253,7 @@ export default function FindPartner() {
         
         {!isSearching && searchQuery && searchResults.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">Пользователи не найдены</p>
+            <p className="text-gray-300">Пользователи не найдены</p>
           </div>
         )}
       </motion.div>

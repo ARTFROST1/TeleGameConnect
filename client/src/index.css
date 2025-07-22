@@ -34,23 +34,23 @@
 
 .dark {
   --background: hsl(315, 50%, 4%);
-  --foreground: hsl(315, 20%, 95%);
+  --foreground: hsl(0, 0%, 98%);
   --muted: hsl(315, 40%, 8%);
-  --muted-foreground: hsl(315, 15%, 75%);
+  --muted-foreground: hsl(0, 0%, 85%);
   --popover: hsl(315, 40%, 6%);
-  --popover-foreground: hsl(315, 20%, 95%);
+  --popover-foreground: hsl(0, 0%, 98%);
   --card: hsl(315, 40%, 7%);
-  --card-foreground: hsl(315, 20%, 95%);
+  --card-foreground: hsl(0, 0%, 98%);
   --border: hsl(315, 30%, 15%);
   --input: hsl(315, 30%, 12%);
   --primary: hsl(310, 100%, 65%);
-  --primary-foreground: hsl(315, 50%, 5%);
+  --primary-foreground: hsl(0, 0%, 98%);
   --secondary: hsl(315, 30%, 12%);
-  --secondary-foreground: hsl(315, 20%, 95%);
+  --secondary-foreground: hsl(0, 0%, 98%);
   --accent: hsl(320, 60%, 20%);
-  --accent-foreground: hsl(315, 20%, 95%);
+  --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(0, 75%, 55%);
-  --destructive-foreground: hsl(315, 20%, 95%);
+  --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(310, 100%, 65%);
 }
 
@@ -87,8 +87,9 @@
   }
 
   .dark .glass-card {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: hsl(0, 0%, 98%);
   }
 
   .glass-card:hover {
@@ -217,7 +218,7 @@
   }
 
   .dark .text-gradient {
-    @apply bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent;
   }
 
   .bg-gradient-primary {
@@ -236,5 +237,39 @@
     border-image: linear-gradient(135deg, 
       hsl(var(--purple-start)), 
       hsl(var(--pink-end))) 1;
+  }
+
+  /* Принудительные цвета для лучшей контрастности */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: hsl(0, 0%, 98%) !important;
+  }
+
+  .dark p, .dark span, .dark div {
+    color: hsl(0, 0%, 90%) !important;
+  }
+
+  .dark .text-muted-foreground {
+    color: hsl(0, 0%, 75%) !important;
+  }
+
+  .dark [data-slot="content"] {
+    color: hsl(0, 0%, 90%) !important;
+  }
+
+  .dark .glass-card * {
+    color: hsl(0, 0%, 90%) !important;
+  }
+
+  .dark .glass-card h1, .dark .glass-card h2, .dark .glass-card h3, 
+  .dark .glass-card h4, .dark .glass-card h5, .dark .glass-card h6 {
+    color: hsl(0, 0%, 98%) !important;
+  }
+
+  .dark button {
+    color: hsl(0, 0%, 95%) !important;
+  }
+
+  .dark .text-gradient {
+    color: transparent !important;
   }
 }
