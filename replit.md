@@ -60,6 +60,9 @@ The application follows a monorepo structure with clear separation between clien
 - **Auto Username Generation**: Generates random username (UserXXXX format) for immediate access
 - **Improved Contrast**: Fixed visibility issues across all screens - enhanced button contrast and text readability
 - **Better UX**: Eliminated registration friction for faster app entry
+- **Telegram Integration**: Full Telegram Web App support with bot commands and user authentication
+- **Dual Authentication**: Supports both Telegram Web App and demo mode for browser testing
+- **Bot Commands**: Implemented /start, /help, /profile commands with interactive buttons
 
 ## Data Flow
 

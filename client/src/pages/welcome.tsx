@@ -1,28 +1,74 @@
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGame } from "@/contexts/GameContext";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
+// Declare Telegram Web App types
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: {
+        initData: string;
+        initDataUnsafe: {
+          user?: {
+            id: number;
+            username?: string;
+            first_name?: string;
+            last_name?: string;
+          };
+        };
+        ready(): void;
+        MainButton: {
+          text: string;
+          show(): void;
+          hide(): void;
+        };
+      };
+    };
+  }
+}
+
 export default function Welcome() {
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [isTelegramApp, setIsTelegramApp] = useState(false);
   const { setCurrentUser } = useGame();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if we're running inside Telegram Web App
+    if (window.Telegram?.WebApp) {
+      setIsTelegramApp(true);
+      window.Telegram.WebApp.ready();
+    }
+  }, []);
 
   const handleStart = async () => {
     setIsLoading(true);
     try {
-      // Генерируем случайное имя пользователя
-      const randomUsername = `User${Math.floor(Math.random() * 10000)}`;
+      let response;
       
-      const response = await fetch("/api/auth/demo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: randomUsername }),
-      });
+      if (isTelegramApp && window.Telegram?.WebApp.initData) {
+        // Use Telegram authentication
+        response = await fetch("/api/auth/telegram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            initData: window.Telegram.WebApp.initData
+          }),
+        });
+      } else {
+        // Fallback to demo authentication
+        const randomUsername = `User${Math.floor(Math.random() * 10000)}`;
+        response = await fetch("/api/auth/demo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: randomUsername }),
+        });
+      }
 
       if (response.ok) {
         const user = await response.json();

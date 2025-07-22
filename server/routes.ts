@@ -331,26 +331,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Telegram auth (готов для будущей интеграции)
+  // Enhanced Telegram Web App authentication
   app.post("/api/auth/telegram", async (req, res) => {
     try {
-      const { telegramId, username, firstName, lastName, avatar = '0' } = req.body;
+      const { initData } = req.body;
       
-      // Проверяем, существует ли пользователь с таким Telegram ID
+      if (!initData) {
+        return res.status(400).json({ error: 'Missing initData' });
+      }
+
+      // Parse Telegram Web App init data
+      const urlParams = new URLSearchParams(initData);
+      const userStr = urlParams.get('user');
+      
+      if (!userStr) {
+        return res.status(400).json({ error: 'Invalid initData' });
+      }
+
+      const telegramUser = JSON.parse(userStr);
+      const telegramId = telegramUser.id.toString();
+      const username = telegramUser.username || telegramUser.first_name || `User${telegramUser.id}`;
+
+      // Check if user exists
       let user = await storage.getUserByTelegramId(telegramId);
       
       if (!user) {
-        // Создаём нового пользователя
+        // Create new user
         const userData = {
           telegramId,
-          username: username || firstName || 'Пользователь',
-          firstName,
-          lastName,
-          avatar
+          username,
+          firstName: telegramUser.first_name,
+          lastName: telegramUser.last_name,
+          avatar: Math.floor(Math.random() * 4).toString()
         };
         user = await storage.createUser(userData);
       } else {
-        // Обновляем данные существующего пользователя
+        // Update existing user data
         user = await storage.updateUser(user.id, {
           username: username || user.username,
           firstName,
