@@ -119,7 +119,6 @@ export default function FindPartner() {
 
   return (
     <div className="min-h-screen p-6 relative overflow-hidden">
-      
       <motion.div 
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -135,7 +134,6 @@ export default function FindPartner() {
         </Link>
         <h2 className="text-2xl font-bold text-gradient">Найти партнёра</h2>
       </motion.div>
-      
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -221,7 +219,7 @@ export default function FindPartner() {
                       </motion.div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{user.username}</p>
+                          <p className="font-medium text-[#fbf9fa]">{user.username}</p>
                           {isTestPartner && (
                             <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-lg border border-green-500/30">
                               DEMO
