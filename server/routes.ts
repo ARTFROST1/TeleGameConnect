@@ -29,9 +29,11 @@ interface WebSocketClient {
   ws: WebSocket;
   userId: number;
   roomId?: number;
+  connectionId: string;
 }
 
-const clients = new Map<number, WebSocketClient>();
+const clients = new Map<string, WebSocketClient>();
+const userConnections = new Map<number, Set<string>>();
 
 function broadcast(roomId: number, message: any, excludeUserId?: number) {
   Array.from(clients.values())
@@ -41,6 +43,27 @@ function broadcast(roomId: number, message: any, excludeUserId?: number) {
         client.ws.send(JSON.stringify(message));
       }
     });
+}
+
+function generateConnectionId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function addUserConnection(userId: number, connectionId: string) {
+  if (!userConnections.has(userId)) {
+    userConnections.set(userId, new Set());
+  }
+  userConnections.get(userId)!.add(connectionId);
+}
+
+function removeUserConnection(userId: number, connectionId: string) {
+  const connections = userConnections.get(userId);
+  if (connections) {
+    connections.delete(connectionId);
+    if (connections.size === 0) {
+      userConnections.delete(userId);
+    }
+  }
 }
 
 // Auto-play function for test partner
@@ -369,8 +392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing user data
         user = await storage.updateUser(user.id, {
           username: username || user.username,
-          firstName,
-          lastName
+          firstName: telegramUser.first_name || user.firstName,
+          lastName: telegramUser.last_name || user.lastName
         }) || user;
       }
       
@@ -480,24 +503,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   wss.on('connection', (ws: WebSocket) => {
+    let connectionId: string | null = null;
+    let userId: number | null = null;
+
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
         
         switch (message.type) {
           case 'join':
-            const { userId, roomId } = message;
-            clients.set(userId, { ws, userId, roomId });
+            const { userId: msgUserId, roomId } = message;
+            connectionId = generateConnectionId();
+            userId = msgUserId;
             
-            // Update room status to active if both players are connected
+            // Store this specific connection
+            clients.set(connectionId, { ws, userId: msgUserId, roomId, connectionId });
+            addUserConnection(msgUserId, connectionId);
+            
+            console.log(`User ${msgUserId} connected with connection ${connectionId} to room ${roomId}`);
+            
+            // Update room status to active if both unique players are connected
             const room = await storage.getGameRoom(roomId);
             if (room) {
-              const connectedPlayers = Array.from(clients.values())
-                .filter(client => client.roomId === roomId).length;
+              const uniquePlayersConnected = new Set(
+                Array.from(clients.values())
+                  .filter(client => client.roomId === roomId)
+                  .map(client => client.userId)
+              );
               
-              if (connectedPlayers === 2) {
+              console.log(`Room ${roomId}: Connected players:`, Array.from(uniquePlayersConnected));
+              
+              if (uniquePlayersConnected.size === 2 && 
+                  uniquePlayersConnected.has(room.player1Id) && 
+                  uniquePlayersConnected.has(room.player2Id)) {
                 await storage.updateGameRoom(roomId, { status: 'active' });
                 broadcast(roomId, { type: 'game_start', room });
+                console.log(`Room ${roomId} is now active with both players connected`);
               }
             }
             break;
@@ -711,13 +752,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
-      // Remove client from clients map
-      const clientEntries = Array.from(clients.entries());
-      for (const [userId, client] of clientEntries) {
-        if (client.ws === ws) {
-          clients.delete(userId);
-          break;
-        }
+      // Remove client from clients map and user connections
+      if (connectionId && userId) {
+        console.log(`User ${userId} disconnected connection ${connectionId}`);
+        clients.delete(connectionId);
+        removeUserConnection(userId, connectionId);
       }
     });
   });

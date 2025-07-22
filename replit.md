@@ -63,6 +63,9 @@ The application follows a monorepo structure with clear separation between clien
 - **Telegram Integration**: Full Telegram Web App support with bot commands and user authentication
 - **Dual Authentication**: Supports both Telegram Web App and demo mode for browser testing
 - **Bot Commands**: Implemented /start, /help, /profile commands with interactive buttons
+- **Fixed Online Structure**: Resolved WebSocket connection conflicts allowing multiple users to connect simultaneously
+- **Enhanced Connection Management**: Implemented unique connection IDs preventing user session overwrites
+- **Telegram Auth Fix**: Resolved "firstName is not defined" errors in Telegram Web App authentication
 
 ## Data Flow
 
