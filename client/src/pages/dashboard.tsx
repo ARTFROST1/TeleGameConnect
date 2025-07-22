@@ -28,7 +28,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-purple-950 dark:via-pink-950 dark:to-purple-900 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground">Пользователь не найден</p>
@@ -45,7 +45,7 @@ export default function Dashboard() {
   const PartnerIcon = partner ? avatarIcons[parseInt(partner.avatar) || 0] : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-purple-950 dark:via-pink-950 dark:to-purple-900">
+    <div className="min-h-screen">
       <div className="container mx-auto p-4 max-w-4xl">
         {/* Header */}
         <motion.div 
@@ -68,7 +68,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-gradient">
                 {(user as any)?.username}
               </h1>
               <p className="text-muted-foreground">ID: #{(user as any)?.id}</p>
@@ -81,11 +81,11 @@ export default function Dashboard() {
             className="flex items-center gap-2"
           >
             <Link href="/profile">
-              <Button variant="ghost" size="icon" className="rounded-full glass-card hover:glow-effect">
+              <Button variant="ghost" size="icon" className="rounded-full">
                 <User className="h-5 w-5" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="rounded-full glass-card">
+            <Button variant="ghost" size="icon" className="rounded-full">
               <Settings className="h-5 w-5" />
             </Button>
           </motion.div>

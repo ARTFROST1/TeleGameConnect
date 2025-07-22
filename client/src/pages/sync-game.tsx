@@ -139,7 +139,7 @@ export default function SyncGame() {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-zinc-400">Для игры нужен партнёр</p>
+          <p className="text-muted-foreground">Для игры нужен партнёр</p>
           <Link href="/dashboard">
             <Button className="mt-4">На главную</Button>
           </Link>

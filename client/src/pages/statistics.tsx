@@ -37,7 +37,7 @@ export default function Statistics() {
   const PartnerIcon = partner ? avatarIcons[parseInt(partner.avatar)] : User;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-purple-950 dark:via-pink-950 dark:to-purple-900">
+    <div className="min-h-screen">
       <div className="container mx-auto p-4 max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -47,7 +47,7 @@ export default function Statistics() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-gradient">
               Статистика
             </h1>
             <p className="text-muted-foreground">Ваши достижения в играх</p>
@@ -96,14 +96,14 @@ export default function Statistics() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4">
-                  <div className="text-center p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-400/10 dark:to-pink-400/10 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  <div className="text-center p-3 bg-gradient-primary/10 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
                       {Math.round(currentUser.gamesPlayed * 0.7)}
                     </div>
                     <div className="text-xs text-muted-foreground">Правда</div>
                   </div>
-                  <div className="text-center p-3 bg-gradient-to-r from-pink-500/10 to-purple-500/10 dark:from-pink-400/10 dark:to-purple-400/10 rounded-lg">
-                    <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                  <div className="text-center p-3 bg-gradient-secondary/10 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
                       {Math.round(currentUser.gamesPlayed * 0.3)}
                     </div>
                     <div className="text-xs text-muted-foreground">Действие</div>
