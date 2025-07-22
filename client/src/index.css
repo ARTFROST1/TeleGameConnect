@@ -36,7 +36,7 @@
   --background: hsl(315, 50%, 4%);
   --foreground: hsl(315, 20%, 95%);
   --muted: hsl(315, 40%, 8%);
-  --muted-foreground: hsl(315, 15%, 60%);
+  --muted-foreground: hsl(315, 15%, 75%);
   --popover: hsl(315, 40%, 6%);
   --popover-foreground: hsl(315, 20%, 95%);
   --card: hsl(315, 40%, 7%);
@@ -46,9 +46,9 @@
   --primary: hsl(310, 100%, 65%);
   --primary-foreground: hsl(315, 50%, 5%);
   --secondary: hsl(315, 30%, 12%);
-  --secondary-foreground: hsl(315, 20%, 85%);
+  --secondary-foreground: hsl(315, 20%, 95%);
   --accent: hsl(320, 60%, 20%);
-  --accent-foreground: hsl(315, 20%, 90%);
+  --accent-foreground: hsl(315, 20%, 95%);
   --destructive: hsl(0, 75%, 55%);
   --destructive-foreground: hsl(315, 20%, 95%);
   --ring: hsl(310, 100%, 65%);

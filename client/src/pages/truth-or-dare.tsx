@@ -148,7 +148,7 @@ export default function TruthOrDare() {
         className="flex items-center justify-between mb-6"
       >
         <Link href="/dashboard">
-          <Button variant="ghost" size="sm" className="text-accent-purple">
+          <Button variant="ghost" size="sm" className="text-[#f9c8e9]">
             <ArrowLeft className="text-xl" />
           </Button>
         </Link>

@@ -114,7 +114,7 @@ export default function Profile() {
           className="flex items-center gap-4 mb-8"
         >
           <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="rounded-full glass-card">
+            <Button variant="ghost" size="icon" className="rounded-full glass-card text-[#f9c8e9]">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>

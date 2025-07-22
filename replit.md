@@ -55,10 +55,11 @@ The application follows a monorepo structure with clear separation between clien
 - **Profile Management**: Avatar selection with modern animated interface
 
 ## Recent Changes (January 22, 2025)
-- Simplified welcome screen: Removed choice between "новый игрок" and "уже есть аккаунт"
-- Added one-click automatic entry with "Начать" button
-- Auto-generates random usernames for immediate app access
-- Improved user experience by eliminating registration friction
+- **Simplified Welcome Screen**: Removed choice between "новый игрок" and "уже есть аккаунт"
+- **One-Click Entry**: Added automatic entry with single "Начать" button
+- **Auto Username Generation**: Generates random username (UserXXXX format) for immediate access
+- **Improved Contrast**: Fixed visibility issues across all screens - enhanced button contrast and text readability
+- **Better UX**: Eliminated registration friction for faster app entry
 
 ## Data Flow
 

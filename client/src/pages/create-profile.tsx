@@ -77,7 +77,7 @@ export default function CreateProfile() {
       >
         <Link href="/">
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button variant="ghost" size="sm" className="rounded-xl p-3 mr-4">
+            <Button variant="ghost" size="sm" className="rounded-xl p-3 mr-4 text-[#f9c8e9]">
               <ArrowLeft className="text-xl" />
             </Button>
           </motion.div>

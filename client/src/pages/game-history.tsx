@@ -73,7 +73,7 @@ export default function GameHistory() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full text-[#f9c8e9]">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>

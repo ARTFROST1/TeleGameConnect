@@ -81,7 +81,7 @@ export default function Dashboard() {
             className="flex items-center gap-2"
           >
             <Link href="/profile">
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full text-[#f9c8e9]">
                 <User className="h-5 w-5" />
               </Button>
             </Link>
