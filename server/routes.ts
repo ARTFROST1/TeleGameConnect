@@ -43,6 +43,266 @@ function broadcast(roomId: number, message: any, excludeUserId?: number) {
     });
 }
 
+// Auto-play function for test partner
+async function handleTestPartnerTurn(roomId: number) {
+  try {
+    const room = await storage.getGameRoom(roomId);
+    if (!room || room.currentPlayer !== 999) return;
+
+    if (room.gameType === 'truth_or_dare') {
+      // Auto-choose truth or dare randomly
+      const choice = Math.random() > 0.5 ? 'truth' : 'dare';
+      const questions = choice === 'truth' ? 
+        truthOrDareQuestions.filter(q => q.type === 'truth') :
+        truthOrDareQuestions.filter(q => q.type === 'dare');
+      
+      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+      
+      const gameState: GameState = room.gameData as GameState || {
+        currentQuestionIndex: 0,
+        player1Score: 0,
+        player2Score: 0
+      };
+      
+      gameState.currentQuestion = randomQuestion;
+      
+      await storage.updateGameRoom(roomId, { gameData: gameState });
+      
+      broadcast(roomId, {
+        type: 'question_assigned',
+        question: randomQuestion,
+        currentPlayer: 999
+      });
+
+      // Auto-complete the question after 3 seconds
+      setTimeout(async () => {
+        const completed = Math.random() > 0.3; // 70% chance of completing
+        
+        const updatedRoom = await storage.getGameRoom(roomId);
+        if (updatedRoom) {
+          const updatedGameState: GameState = updatedRoom.gameData as GameState || {
+            currentQuestionIndex: 0,
+            player1Score: 0,
+            player2Score: 0
+          };
+          
+          if (completed) {
+            updatedGameState.player2Score += 1;
+          }
+          
+          // Switch turn back to human player
+          const nextPlayer = updatedRoom.player1Id;
+          
+          await storage.updateGameRoom(roomId, { 
+            currentPlayer: nextPlayer,
+            gameData: updatedGameState 
+          });
+          
+          broadcast(roomId, {
+            type: 'turn_changed',
+            currentPlayer: nextPlayer,
+            scores: {
+              player1Score: updatedGameState.player1Score,
+              player2Score: updatedGameState.player2Score
+            }
+          });
+        }
+      }, 3000);
+      
+    } else if (room.gameType === 'sync') {
+      // Auto-answer sync questions
+      const answers = await storage.getGameAnswers(roomId);
+      const currentGameState = room.gameData as GameState;
+      
+      if (currentGameState && typeof currentGameState.currentQuestionIndex === 'number') {
+        const currentQuestion = syncQuestions[currentGameState.currentQuestionIndex];
+        if (currentQuestion) {
+          const hasAnswered = answers.some(a => 
+            a.questionId === currentQuestion.id && a.playerId === 999
+          );
+          
+          if (!hasAnswered) {
+            // Randomly choose an answer
+            const randomAnswer = currentQuestion.options[Math.floor(Math.random() * currentQuestion.options.length)];
+            
+            await storage.createGameAnswer({
+              roomId,
+              playerId: 999,
+              questionId: currentQuestion.id,
+              answer: randomAnswer,
+              completed: true
+            });
+            
+            // Check if both players have now answered
+            const allAnswers = await storage.getGameAnswers(roomId);
+            const currentQuestionAnswers = allAnswers.filter(a => a.questionId === currentQuestion.id);
+            
+            if (currentQuestionAnswers.length === 2) {
+              const player1Answer = currentQuestionAnswers.find(a => a.playerId === room.player1Id);
+              const player2Answer = currentQuestionAnswers.find(a => a.playerId === room.player2Id);
+              
+              const isMatch = player1Answer?.answer === player2Answer?.answer;
+              
+              const gameState: GameState = room.gameData as GameState || {
+                currentQuestionIndex: 0,
+                player1Score: 0,
+                player2Score: 0,
+                totalQuestions: 5
+              };
+              
+              if (isMatch) {
+                gameState.player1Score += 10;
+                gameState.player2Score += 10;
+              }
+              
+              gameState.currentQuestionIndex += 1;
+              
+              await storage.updateGameRoom(roomId, { gameData: gameState });
+              
+              broadcast(roomId, {
+                type: 'sync_result',
+                isMatch,
+                answers: {
+                  player1: player1Answer?.answer,
+                  player2: player2Answer?.answer
+                },
+                scores: {
+                  player1Score: gameState.player1Score,
+                  player2Score: gameState.player2Score
+                },
+                nextQuestion: gameState.currentQuestionIndex < syncQuestions.length ? 
+                  syncQuestions[gameState.currentQuestionIndex] : null,
+                gameFinished: gameState.currentQuestionIndex >= syncQuestions.length
+              });
+            } else {
+              // Notify that test partner answered
+              broadcast(roomId, {
+                type: 'partner_answered',
+                playerId: 999
+              }, 999);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Test partner auto-play error:', error);
+  }
+}
+
+// Auto-answer function for test partner in sync games
+async function handleTestPartnerSyncAnswer(roomId: number, questionId: string) {
+  try {
+    const room = await storage.getGameRoom(roomId);
+    if (!room || room.gameType !== 'sync') return;
+
+    const answers = await storage.getGameAnswers(roomId);
+    const hasAnswered = answers.some(a => 
+      a.questionId === questionId && a.playerId === 999
+    );
+    
+    if (hasAnswered) return; // Already answered
+
+    const currentQuestion = syncQuestions.find(q => q.id === questionId);
+    if (!currentQuestion) return;
+
+    // Randomly choose an answer (sometimes match human player's choice)
+    const humanAnswer = answers.find(a => 
+      a.questionId === questionId && a.playerId !== 999
+    );
+    
+    let randomAnswer;
+    if (humanAnswer && Math.random() > 0.6) {
+      // 40% chance to match human's answer for more fun
+      randomAnswer = humanAnswer.answer;
+    } else {
+      // Random choice
+      randomAnswer = currentQuestion.options[Math.floor(Math.random() * currentQuestion.options.length)];
+    }
+    
+    await storage.createGameAnswer({
+      roomId,
+      playerId: 999,
+      questionId,
+      answer: randomAnswer,
+      completed: true
+    });
+    
+    // Check if both players have now answered
+    const allAnswers = await storage.getGameAnswers(roomId);
+    const currentQuestionAnswers = allAnswers.filter(a => a.questionId === questionId);
+    
+    if (currentQuestionAnswers.length === 2) {
+      const player1Answer = currentQuestionAnswers.find(a => a.playerId === room.player1Id);
+      const player2Answer = currentQuestionAnswers.find(a => a.playerId === room.player2Id);
+      
+      const isMatch = player1Answer?.answer === player2Answer?.answer;
+      
+      const gameState: GameState = room.gameData as GameState || {
+        currentQuestionIndex: 0,
+        player1Score: 0,
+        player2Score: 0,
+        totalQuestions: 5
+      };
+      
+      if (isMatch) {
+        gameState.player1Score += 10;
+        gameState.player2Score += 10;
+      }
+      
+      gameState.currentQuestionIndex += 1;
+      
+      await storage.updateGameRoom(roomId, { gameData: gameState });
+      
+      broadcast(roomId, {
+        type: 'sync_result',
+        isMatch,
+        answers: {
+          player1: player1Answer?.answer,
+          player2: player2Answer?.answer
+        },
+        scores: {
+          player1Score: gameState.player1Score,
+          player2Score: gameState.player2Score
+        },
+        nextQuestion: gameState.currentQuestionIndex < syncQuestions.length ? 
+          syncQuestions[gameState.currentQuestionIndex] : null,
+        gameFinished: gameState.currentQuestionIndex >= syncQuestions.length
+      });
+      
+      // Update user stats if game finished
+      if (gameState.currentQuestionIndex >= syncQuestions.length) {
+        const user1 = await storage.getUser(room.player1Id);
+        const user2 = await storage.getUser(room.player2Id);
+        
+        if (user1 && user1.id !== 999) {
+          await storage.updateUser(user1.id, {
+            gamesPlayed: user1.gamesPlayed + 1,
+            syncScore: Math.round((gameState.player1Score / (syncQuestions.length * 10)) * 100)
+          });
+        }
+        
+        if (user2 && user2.id !== 999) {
+          await storage.updateUser(user2.id, {
+            gamesPlayed: user2.gamesPlayed + 1,
+            syncScore: Math.round((gameState.player2Score / (syncQuestions.length * 10)) * 100)
+          });
+        }
+        
+        await storage.updateGameRoom(roomId, { status: 'finished' });
+      }
+    } else {
+      // Notify that test partner answered
+      broadcast(roomId, {
+        type: 'partner_answered',
+        playerId: 999
+      }, 999);
+    }
+  } catch (error) {
+    console.error('Test partner sync answer error:', error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   // Упрощённый вход для демо (без Telegram)
@@ -187,6 +447,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/games/history/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      // This would normally fetch from database, but for demo we'll return empty array
+      // In real implementation, you'd fetch game history from database
+      res.json([]);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user ID" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server
@@ -280,6 +551,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   player2Score: gameState.player2Score
                 }
               });
+              
+              // Auto-play for test partner (ID: 999)
+              if (nextPlayer === 999) {
+                setTimeout(async () => {
+                  await handleTestPartnerTurn(completeRoomId);
+                }, 2000); // 2 second delay for realistic feel
+              }
             }
             break;
             
@@ -366,6 +644,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   type: 'partner_answered',
                   playerId: syncPlayerId
                 }, syncPlayerId);
+                
+                // Auto-answer for test partner if they haven't answered yet
+                if ((syncRoom.player1Id === 999 || syncRoom.player2Id === 999) && syncPlayerId !== 999) {
+                  setTimeout(async () => {
+                    await handleTestPartnerSyncAnswer(syncRoomId, questionId);
+                  }, 1500); // 1.5 second delay
+                }
               }
             }
             break;
@@ -394,6 +679,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 questionIndex: 0,
                 totalQuestions: syncQuestions.length
               });
+              
+              // Auto-start for test partner
+              if (startSyncRoom.player1Id === 999 || startSyncRoom.player2Id === 999) {
+                setTimeout(async () => {
+                  await handleTestPartnerSyncAnswer(startSyncRoomId, syncQuestions[0].id);
+                }, 2000); // 2 second delay
+              }
             }
             break;
         }
