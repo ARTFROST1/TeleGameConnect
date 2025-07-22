@@ -235,7 +235,7 @@ export default function FindPartner() {
                       <Button
                         onClick={() => addPartner(user.id)}
                         disabled={isAdding === user.id}
-                        className="modern-button px-6 py-2 rounded-xl font-medium"
+                        className="modern-button px-6 py-2 rounded-xl font-medium text-[#f9c8e9]"
                         size="sm"
                       >
                         {isAdding === user.id ? 
