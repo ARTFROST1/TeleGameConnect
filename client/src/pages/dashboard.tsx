@@ -85,7 +85,7 @@ export default function Dashboard() {
                 <User className="h-5 w-5" />
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full text-[#f9c8e9] bg-[#23252f00]">
               <Settings className="h-5 w-5" />
             </Button>
           </motion.div>
