@@ -4,8 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { User, Star, Heart, Flame, Settings, Plus, Users, MessageCircleQuestion, RotateCcw, ChevronRight, BarChart, Trophy, Clock, Zap, History } from "lucide-react";
 import { Link } from "wouter";
 import { useGame } from "@/contexts/GameContext";
+import { NotificationSystem } from "@/components/NotificationSystem";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const avatarIcons = [User, Star, Heart, Flame];
 const avatarGradients = [
@@ -17,6 +19,51 @@ const avatarGradients = [
 
 export default function Dashboard() {
   const { currentUser, partner } = useGame();
+  const { toast } = useToast();
+
+  const sendGameInvitation = async (gameType: 'truth_or_dare' | 'sync') => {
+    if (!currentUser || !partner) {
+      toast({
+        title: "Ошибка",
+        description: "Нужен партнёр для игры",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/game-invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromUserId: currentUser.id,
+          toUserId: partner.id,
+          gameType,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Приглашение отправлено!",
+          description: `${partner.username} получит приглашение в игру`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Ошибка",
+          description: error.message || "Не удалось отправить приглашение",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Проблема с подключением к серверу",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Refresh user data to get updated stats
   const { data: updatedUser } = useQuery({
@@ -80,6 +127,7 @@ export default function Dashboard() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="flex items-center gap-2"
           >
+            <NotificationSystem />
             <Link href="/profile">
               <Button variant="ghost" size="icon" className="rounded-full text-[#f9c8e9]">
                 <User className="h-5 w-5" />
@@ -178,51 +226,67 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Link href="/truth-or-dare">
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="glass-card p-6 cursor-pointer group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                    <div className="relative flex items-center gap-4">
-                      <motion.div 
-                        whileHover={{ rotate: 15, scale: 1.1 }}
-                        className="p-4 rounded-2xl bg-gradient-primary glow-effect"
-                      >
-                        <Zap className="h-6 w-6 text-white" />
-                      </motion.div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-xl mb-2 text-gradient">Правда или Действие</h4>
-                        <p className="text-sm text-gray-300">Классическая игра в современном формате</p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => partner ? sendGameInvitation('truth_or_dare') : toast({ title: "Нужен партнёр", description: "Найдите партнёра для игры", variant: "destructive" })}
+                  className="glass-card p-6 cursor-pointer group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                  <div className="relative flex items-center gap-4">
+                    <motion.div 
+                      whileHover={{ rotate: 15, scale: 1.1 }}
+                      className="p-4 rounded-2xl bg-gradient-primary glow-effect"
+                    >
+                      <Zap className="h-6 w-6 text-white" />
+                    </motion.div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-xl mb-2 text-gradient">Правда или Действие</h4>
+                      <p className="text-sm text-gray-300">
+                        {partner ? "Пригласить партнёра в игру" : "Найдите партнёра для игры"}
+                      </p>
                     </div>
-                  </motion.div>
-                </Link>
+                    {partner ? (
+                      <div className="flex items-center text-primary">
+                        <Users className="h-4 w-4 mr-1" />
+                        <span className="text-sm font-medium">Пригласить</span>
+                      </div>
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </motion.div>
                 
-                <Link href="/sync-game">
-                  <motion.div 
-                    whileHover={{ scale: 1.02, y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="glass-card p-6 cursor-pointer group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-secondary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                    <div className="relative flex items-center gap-4">
-                      <motion.div 
-                        whileHover={{ rotate: -15, scale: 1.1 }}
-                        className="p-4 rounded-2xl bg-gradient-secondary glow-effect"
-                      >
-                        <Heart className="h-6 w-6 text-white" />
-                      </motion.div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-xl mb-2 text-gradient">Синхронизация</h4>
-                        <p className="text-sm text-gray-300">Проверьте насколько вы совпадаете</p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary transition-colors" />
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => partner ? sendGameInvitation('sync') : toast({ title: "Нужен партнёр", description: "Найдите партнёра для игры", variant: "destructive" })}
+                  className="glass-card p-6 cursor-pointer group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-secondary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                  <div className="relative flex items-center gap-4">
+                    <motion.div 
+                      whileHover={{ rotate: -15, scale: 1.1 }}
+                      className="p-4 rounded-2xl bg-gradient-secondary glow-effect"
+                    >
+                      <Heart className="h-6 w-6 text-white" />
+                    </motion.div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-xl mb-2 text-gradient">Синхронизация</h4>
+                      <p className="text-sm text-gray-300">
+                        {partner ? "Пригласить партнёра в игру" : "Найдите партнёра для игры"}
+                      </p>
                     </div>
-                  </motion.div>
-                </Link>
+                    {partner ? (
+                      <div className="flex items-center text-primary">
+                        <Users className="h-4 w-4 mr-1" />
+                        <span className="text-sm font-medium">Пригласить</span>
+                      </div>
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </motion.div>
               </div>
             </CardContent>
           </Card>

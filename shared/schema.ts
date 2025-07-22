@@ -36,6 +36,27 @@ export const gameAnswers = pgTable("game_answers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const partnerInvitations = pgTable("partner_invitations", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  respondedAt: timestamp("responded_at"),
+});
+
+export const gameInvitations = pgTable("game_invitations", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
+  gameType: text("game_type").notNull(), // 'truth_or_dare' or 'sync'
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined', 'expired'
+  roomId: integer("room_id"), // Set when invitation is accepted
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  respondedAt: timestamp("responded_at"),
+  expiresAt: timestamp("expires_at"), // Auto-expire invitations after some time
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   telegramId: true,
   username: true,
@@ -60,12 +81,28 @@ export const insertGameAnswerSchema = createInsertSchema(gameAnswers).pick({
   completed: true,
 });
 
+export const insertPartnerInvitationSchema = createInsertSchema(partnerInvitations).pick({
+  fromUserId: true,
+  toUserId: true,
+});
+
+export const insertGameInvitationSchema = createInsertSchema(gameInvitations).pick({
+  fromUserId: true,
+  toUserId: true,
+  gameType: true,
+  expiresAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertGameRoom = z.infer<typeof insertGameRoomSchema>;
 export type GameRoom = typeof gameRooms.$inferSelect;
 export type InsertGameAnswer = z.infer<typeof insertGameAnswerSchema>;
 export type GameAnswer = typeof gameAnswers.$inferSelect;
+export type InsertPartnerInvitation = z.infer<typeof insertPartnerInvitationSchema>;
+export type PartnerInvitation = typeof partnerInvitations.$inferSelect;
+export type InsertGameInvitation = z.infer<typeof insertGameInvitationSchema>;
+export type GameInvitation = typeof gameInvitations.$inferSelect;
 
 // Game-specific types
 export type TruthOrDareQuestion = {
@@ -87,4 +124,22 @@ export type GameState = {
   player2Score: number;
   totalQuestions?: number;
   answers?: { [playerId: number]: string };
+};
+
+// Notification types for real-time updates
+export type NotificationType = 
+  | 'partner_invitation'
+  | 'game_invitation'
+  | 'partner_accepted'
+  | 'game_accepted'
+  | 'game_declined'
+  | 'partner_declined';
+
+export type Notification = {
+  id: string;
+  type: NotificationType;
+  fromUser: Pick<User, 'id' | 'username' | 'avatar'>;
+  gameType?: string;
+  invitationId: number;
+  createdAt: Date;
 };

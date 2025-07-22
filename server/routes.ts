@@ -2,19 +2,62 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertUserSchema, insertGameRoomSchema, insertGameAnswerSchema, type GameState, type TruthOrDareQuestion, type SyncQuestion } from "@shared/schema";
+import { insertUserSchema, insertGameRoomSchema, insertGameAnswerSchema, insertPartnerInvitationSchema, insertGameInvitationSchema, type GameState, type TruthOrDareQuestion, type SyncQuestion, type Notification, type NotificationType } from "@shared/schema";
 import { z } from "zod";
 
-// Game data
+// Game data - Extended Truth or Dare Questions
 const truthOrDareQuestions: TruthOrDareQuestion[] = [
+  // Правда - личные вопросы
   { id: "t1", type: "truth", text: "Расскажи самый неловкий момент из детства" },
   { id: "t2", type: "truth", text: "Кто был твоей первой любовью?" },
   { id: "t3", type: "truth", text: "Какую самую большую ложь ты говорил родителям?" },
   { id: "t4", type: "truth", text: "О чём ты мечтаешь, но никому не рассказываешь?" },
-  { id: "d1", type: "dare", text: "Сними 5-секундное видео, где ты поёшь как кот" },
-  { id: "d2", type: "dare", text: "Сделай смешную фотографию и отправь её" },
-  { id: "d3", type: "dare", text: "Покажи свой лучший танцевальный движение" },
-  { id: "d4", type: "dare", text: "Изобрази любимое животное партнёра" },
+  { id: "t5", type: "truth", text: "Какой твой самый странный страх или фобия?" },
+  { id: "t6", type: "truth", text: "За что тебе больше всего стыдно?" },
+  { id: "t7", type: "truth", text: "Какая твоя самая плохая привычка?" },
+  { id: "t8", type: "truth", text: "Что ты делаешь, когда никто не видит?" },
+  { id: "t9", type: "truth", text: "Какую тайну ты храните дольше всего?" },
+  { id: "t10", type: "truth", text: "Кому ты больше всего завидуешь и почему?" },
+  
+  // Правда - отношения
+  { id: "t11", type: "truth", text: "Что привлекает тебя в людях больше всего?" },
+  { id: "t12", type: "truth", text: "Какой был твой самый неловкий момент на свидании?" },
+  { id: "t13", type: "truth", text: "За что ты готов простить партнера, а за что - никогда?" },
+  { id: "t14", type: "truth", text: "Какой самый романтический поступок совершали для тебя?" },
+  { id: "t15", type: "truth", text: "Как ты понимаешь, что влюбился?" },
+  
+  // Правда - мечты и планы
+  { id: "t16", type: "truth", text: "Где ты видишь себя через 10 лет?" },
+  { id: "t17", type: "truth", text: "Какую суперспособность ты бы хотел иметь?" },
+  { id: "t18", type: "truth", text: "В какую эпоху ты бы хотел жить и почему?" },
+  { id: "t19", type: "truth", text: "Какое путешествие твоей мечты?" },
+  { id: "t20", type: "truth", text: "Какую песню ты поешь в душе?" },
+  
+  // Действие - творческие
+  { id: "d1", type: "dare", text: "Спой песню твоего детства с полной отдачей" },
+  { id: "d2", type: "dare", text: "Изобрази любимое животное партнера в течение минуты" },
+  { id: "d3", type: "dare", text: "Станцуй танец из популярного видео в TikTok" },
+  { id: "d4", type: "dare", text: "Изобрази известную сцену из фильма без слов" },
+  { id: "d5", type: "dare", text: "Нарисуй портрет партнера за 30 секунд" },
+  { id: "d6", type: "dare", text: "Расскажи анекдот с серьезным лицом" },
+  { id: "d7", type: "dare", text: "Изобрази эмоции только мимикой: радость, грусть, удивление" },
+  { id: "d8", type: "dare", text: "Придумай и исполни рэп о ваших отношениях" },
+  
+  // Действие - смешные
+  { id: "d9", type: "dare", text: "Говори в течение минуты только рифмами" },
+  { id: "d10", type: "dare", text: "Изобрази робота, который пытается танцевать" },
+  { id: "d11", type: "dare", text: "Расскажи историю из детства голосом мультяшного персонажа" },
+  { id: "d12", type: "dare", text: "Ходи как манекен в течение 2 минут" },
+  { id: "d13", type: "dare", text: "Изобрази, как ты просыпаешься утром в замедленной съемке" },
+  { id: "d14", type: "dare", text: "Попытайся съесть что-то без использования рук" },
+  { id: "d15", type: "dare", text: "Сделай селфи в смешной позе и покажи" },
+  
+  // Действие - физические вызовы
+  { id: "d16", type: "dare", text: "Сделай 20 приседаний, считая вслух" },
+  { id: "d17", type: "dare", text: "Попробуй коснуться носа языком" },
+  { id: "d18", type: "dare", text: "Стой на одной ноге в течение минуты" },
+  { id: "d19", type: "dare", text: "Сделай планку на 30 секунд" },
+  { id: "d20", type: "dare", text: "Попытайся медитировать в течение 2 минут, издавая звуки 'Ом'" },
 ];
 
 const syncQuestions: SyncQuestion[] = [
@@ -43,6 +86,18 @@ function broadcast(roomId: number, message: any, excludeUserId?: number) {
         client.ws.send(JSON.stringify(message));
       }
     });
+}
+
+function sendNotification(userId: number, notification: Notification) {
+  const userConnections = Array.from(clients.values()).filter(client => client.userId === userId);
+  userConnections.forEach(client => {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({
+        type: 'notification',
+        notification
+      }));
+    }
+  });
 }
 
 function generateConnectionId(): string {
@@ -423,20 +478,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New invitation-based partner system
+  app.post("/api/partner-invitations", async (req, res) => {
+    try {
+      const invitationData = insertPartnerInvitationSchema.parse(req.body);
+      
+      // Check if there's already a pending invitation
+      const existingInvitations = await storage.getUserPartnerInvitations(invitationData.toUserId);
+      const existingInvitation = existingInvitations.find(inv => inv.fromUserId === invitationData.fromUserId);
+      
+      if (existingInvitation) {
+        return res.status(400).json({ message: "Invitation already sent" });
+      }
+      
+      const invitation = await storage.createPartnerInvitation(invitationData);
+      const fromUser = await storage.getUser(invitationData.fromUserId);
+      
+      if (fromUser) {
+        // Send real-time notification
+        sendNotification(invitationData.toUserId, {
+          id: `partner_inv_${invitation.id}`,
+          type: 'partner_invitation',
+          fromUser: { id: fromUser.id, username: fromUser.username, avatar: fromUser.avatar },
+          invitationId: invitation.id,
+          createdAt: invitation.createdAt
+        });
+      }
+      
+      res.json(invitation);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
+    }
+  });
+
+  app.get("/api/partner-invitations/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const invitations = await storage.getUserPartnerInvitations(userId);
+      
+      // Include sender information
+      const invitationsWithSenders = await Promise.all(invitations.map(async (inv) => {
+        const sender = await storage.getUser(inv.fromUserId);
+        return { ...inv, fromUser: sender };
+      }));
+      
+      res.json(invitationsWithSenders);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user ID" });
+    }
+  });
+
+  app.post("/api/partner-invitations/:id/respond", async (req, res) => {
+    try {
+      const invitationId = parseInt(req.params.id);
+      const { action } = z.object({ action: z.enum(['accept', 'decline']) }).parse(req.body);
+      
+      const invitation = await storage.getPartnerInvitation(invitationId);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      
+      const status = action === 'accept' ? 'accepted' : 'declined';
+      await storage.updatePartnerInvitation(invitationId, { status });
+      
+      if (action === 'accept') {
+        // Set partners for both users
+        await storage.updateUser(invitation.fromUserId, { partnerId: invitation.toUserId });
+        await storage.updateUser(invitation.toUserId, { partnerId: invitation.fromUserId });
+        
+        // Notify the inviter
+        const toUser = await storage.getUser(invitation.toUserId);
+        if (toUser) {
+          sendNotification(invitation.fromUserId, {
+            id: `partner_accept_${invitationId}`,
+            type: 'partner_accepted',
+            fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
+            invitationId,
+            createdAt: new Date()
+          });
+        }
+      } else {
+        // Notify the inviter about decline
+        const toUser = await storage.getUser(invitation.toUserId);
+        if (toUser) {
+          sendNotification(invitation.fromUserId, {
+            id: `partner_decline_${invitationId}`,
+            type: 'partner_declined',
+            fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
+            invitationId,
+            createdAt: new Date()
+          });
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
+    }
+  });
+
+  // Keep old endpoint for backward compatibility (now creates invitation)
   app.post("/api/users/:id/partner", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const { partnerId } = z.object({ partnerId: z.number() }).parse(req.body);
       
-      const user = await storage.updateUser(userId, { partnerId });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      // For test partner (ID: 999), instantly accept
+      if (partnerId === 999) {
+        const user = await storage.updateUser(userId, { partnerId });
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        await storage.updateUser(partnerId, { partnerId: userId });
+        return res.json(user);
       }
       
-      // Also update the partner's partnerId
-      await storage.updateUser(partnerId, { partnerId: userId });
+      // For real users, create invitation instead
+      const invitationData = { fromUserId: userId, toUserId: partnerId };
+      const invitation = await storage.createPartnerInvitation(invitationData);
+      const fromUser = await storage.getUser(userId);
       
-      res.json(user);
+      if (fromUser) {
+        sendNotification(partnerId, {
+          id: `partner_inv_${invitation.id}`,
+          type: 'partner_invitation',
+          fromUser: { id: fromUser.id, username: fromUser.username, avatar: fromUser.avatar },
+          invitationId: invitation.id,
+          createdAt: invitation.createdAt
+        });
+      }
+      
+      res.json({ success: true, message: "Partner invitation sent" });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
     }
@@ -455,12 +627,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Game room routes
+  // Game invitation endpoints
+  app.post("/api/game-invitations", async (req, res) => {
+    try {
+      const invitationData = insertGameInvitationSchema.parse(req.body);
+      
+      // Check if users are partners
+      const fromUser = await storage.getUser(invitationData.fromUserId);
+      const toUser = await storage.getUser(invitationData.toUserId);
+      
+      if (!fromUser || !toUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (fromUser.partnerId !== toUser.id) {
+        return res.status(400).json({ message: "Can only invite partners to games" });
+      }
+      
+      // Check for existing pending invitation
+      const existingInvitations = await storage.getUserGameInvitations(invitationData.toUserId);
+      const existingInvitation = existingInvitations.find(inv => 
+        inv.fromUserId === invitationData.fromUserId && inv.gameType === invitationData.gameType
+      );
+      
+      if (existingInvitation) {
+        return res.status(400).json({ message: "Game invitation already sent" });
+      }
+      
+      const invitation = await storage.createGameInvitation(invitationData);
+      
+      // Send real-time notification
+      sendNotification(invitationData.toUserId, {
+        id: `game_inv_${invitation.id}`,
+        type: 'game_invitation',
+        fromUser: { id: fromUser.id, username: fromUser.username, avatar: fromUser.avatar },
+        gameType: invitationData.gameType,
+        invitationId: invitation.id,
+        createdAt: invitation.createdAt
+      });
+      
+      res.json(invitation);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
+    }
+  });
+
+  app.get("/api/game-invitations/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Clean up expired invitations first
+      await storage.expireOldGameInvitations();
+      
+      const invitations = await storage.getUserGameInvitations(userId);
+      
+      // Include sender information
+      const invitationsWithSenders = await Promise.all(invitations.map(async (inv) => {
+        const sender = await storage.getUser(inv.fromUserId);
+        return { ...inv, fromUser: sender };
+      }));
+      
+      res.json(invitationsWithSenders);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user ID" });
+    }
+  });
+
+  app.post("/api/game-invitations/:id/respond", async (req, res) => {
+    try {
+      const invitationId = parseInt(req.params.id);
+      const { action } = z.object({ action: z.enum(['accept', 'decline']) }).parse(req.body);
+      
+      const invitation = await storage.getGameInvitation(invitationId);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Invitation already responded to" });
+      }
+      
+      if (invitation.expiresAt && invitation.expiresAt <= new Date()) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+      
+      const status = action === 'accept' ? 'accepted' : 'declined';
+      
+      if (action === 'accept') {
+        // Create game room
+        const gameRoom = await storage.createGameRoom({
+          player1Id: invitation.fromUserId,
+          player2Id: invitation.toUserId,
+          gameType: invitation.gameType,
+          currentPlayer: invitation.fromUserId,
+          gameData: {
+            currentQuestionIndex: 0,
+            player1Score: 0,
+            player2Score: 0,
+            totalQuestions: invitation.gameType === 'sync' ? 5 : undefined
+          }
+        });
+        
+        await storage.updateGameInvitation(invitationId, { status, roomId: gameRoom.id });
+        
+        // Notify both players about the accepted game
+        const toUser = await storage.getUser(invitation.toUserId);
+        if (toUser) {
+          sendNotification(invitation.fromUserId, {
+            id: `game_accept_${invitationId}`,
+            type: 'game_accepted',
+            fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
+            gameType: invitation.gameType,
+            invitationId,
+            createdAt: new Date()
+          });
+        }
+        
+        res.json({ success: true, roomId: gameRoom.id });
+      } else {
+        await storage.updateGameInvitation(invitationId, { status });
+        
+        // Notify the inviter about decline
+        const toUser = await storage.getUser(invitation.toUserId);
+        if (toUser) {
+          sendNotification(invitation.fromUserId, {
+            id: `game_decline_${invitationId}`,
+            type: 'game_declined',
+            fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
+            gameType: invitation.gameType,
+            invitationId,
+            createdAt: new Date()
+          });
+        }
+        
+        res.json({ success: true });
+      }
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
+    }
+  });
+
+  // Game room routes - Updated to use invitation system
   app.post("/api/games/create", async (req, res) => {
     try {
       const gameRoomData = insertGameRoomSchema.parse(req.body);
-      const gameRoom = await storage.createGameRoom(gameRoomData);
-      res.json(gameRoom);
+      
+      // Check if this is for test partner, allow direct creation
+      if (gameRoomData.player2Id === 999) {
+        const gameRoom = await storage.createGameRoom(gameRoomData);
+        res.json(gameRoom);
+        return;
+      }
+      
+      // For real partners, require invitation system
+      // First check if there's an accepted game invitation
+      const gameInvitations = await storage.getUserGameInvitations(gameRoomData.player2Id);
+      const acceptedInvitation = Array.from((await Promise.all(
+        gameInvitations.map(async inv => {
+          const fullInv = await storage.getGameInvitation(inv.id);
+          return fullInv;
+        })
+      )).filter(inv => 
+        inv && inv.status === 'accepted' && inv.fromUserId === gameRoomData.player1Id && 
+        inv.gameType === gameRoomData.gameType && !inv.roomId
+      ))[0];
+      
+      if (acceptedInvitation) {
+        // Create room for accepted invitation
+        const gameRoom = await storage.createGameRoom(gameRoomData);
+        await storage.updateGameInvitation(acceptedInvitation.id, { roomId: gameRoom.id });
+        res.json(gameRoom);
+      } else {
+        res.status(400).json({ message: "Game invitation required" });
+      }
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Invalid data" });
     }

@@ -68,19 +68,29 @@ export default function FindPartner() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
-        const partner = searchResults.find(user => user.id === partnerId);
+        const result = await response.json();
         
-        setCurrentUser(updatedUser);
-        if (partner) {
-          setPartner(partner);
+        // Handle different response types
+        if (result.id) {
+          // Direct partner addition (test partner)
+          const partner = searchResults.find(user => user.id === partnerId);
+          setCurrentUser(result);
+          if (partner) {
+            setPartner(partner);
+          }
+          navigate("/dashboard");
+          toast({
+            title: "Партнёр добавлен!",
+            description: "Теперь вы можете играть вместе",
+          });
+        } else {
+          // Invitation sent
+          navigate("/dashboard");
+          toast({
+            title: "Приглашение отправлено!",
+            description: "Пользователь получит уведомление о вашем приглашении",
+          });
         }
-        
-        navigate("/dashboard");
-        toast({
-          title: "Партнёр добавлен!",
-          description: "Теперь вы можете играть вместе",
-        });
       } else {
         const error = await response.json();
         toast({

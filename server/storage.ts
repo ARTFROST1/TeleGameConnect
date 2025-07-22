@@ -1,4 +1,4 @@
-import { users, gameRooms, gameAnswers, type User, type InsertUser, type GameRoom, type InsertGameRoom, type GameAnswer, type InsertGameAnswer } from "@shared/schema";
+import { users, gameRooms, gameAnswers, partnerInvitations, gameInvitations, type User, type InsertUser, type GameRoom, type InsertGameRoom, type GameAnswer, type InsertGameAnswer, type PartnerInvitation, type InsertPartnerInvitation, type GameInvitation, type InsertGameInvitation } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -19,23 +19,46 @@ export interface IStorage {
   createGameAnswer(answer: InsertGameAnswer): Promise<GameAnswer>;
   getGameAnswers(roomId: number): Promise<GameAnswer[]>;
   getGameAnswer(roomId: number, playerId: number, questionId: string): Promise<GameAnswer | undefined>;
+
+  // Partner invitation operations
+  createPartnerInvitation(invitation: InsertPartnerInvitation): Promise<PartnerInvitation>;
+  getPartnerInvitation(id: number): Promise<PartnerInvitation | undefined>;
+  getUserPartnerInvitations(userId: number): Promise<PartnerInvitation[]>;
+  updatePartnerInvitation(id: number, updates: Partial<PartnerInvitation>): Promise<PartnerInvitation | undefined>;
+  deletePartnerInvitation(id: number): Promise<boolean>;
+
+  // Game invitation operations
+  createGameInvitation(invitation: InsertGameInvitation): Promise<GameInvitation>;
+  getGameInvitation(id: number): Promise<GameInvitation | undefined>;
+  getUserGameInvitations(userId: number): Promise<GameInvitation[]>;
+  updateGameInvitation(id: number, updates: Partial<GameInvitation>): Promise<GameInvitation | undefined>;
+  deleteGameInvitation(id: number): Promise<boolean>;
+  expireOldGameInvitations(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private gameRooms: Map<number, GameRoom>;
   private gameAnswers: Map<number, GameAnswer>;
+  private partnerInvitations: Map<number, PartnerInvitation>;
+  private gameInvitations: Map<number, GameInvitation>;
   private currentUserId: number;
   private currentGameRoomId: number;
   private currentGameAnswerId: number;
+  private currentPartnerInvitationId: number;
+  private currentGameInvitationId: number;
 
   constructor() {
     this.users = new Map();
     this.gameRooms = new Map();
     this.gameAnswers = new Map();
+    this.partnerInvitations = new Map();
+    this.gameInvitations = new Map();
     this.currentUserId = 1;
     this.currentGameRoomId = 1;
     this.currentGameAnswerId = 1;
+    this.currentPartnerInvitationId = 1;
+    this.currentGameInvitationId = 1;
     
     // Создаём тестового партнёра
     this.initTestPartner();
@@ -166,6 +189,106 @@ export class MemStorage implements IStorage {
         answer.playerId === playerId && 
         answer.questionId === questionId
     );
+  }
+
+  // Partner invitation methods
+  async createPartnerInvitation(insertInvitation: InsertPartnerInvitation): Promise<PartnerInvitation> {
+    const id = this.currentPartnerInvitationId++;
+    const invitation: PartnerInvitation = {
+      ...insertInvitation,
+      id,
+      status: "pending",
+      createdAt: new Date(),
+      respondedAt: null
+    };
+    this.partnerInvitations.set(id, invitation);
+    return invitation;
+  }
+
+  async getPartnerInvitation(id: number): Promise<PartnerInvitation | undefined> {
+    return this.partnerInvitations.get(id);
+  }
+
+  async getUserPartnerInvitations(userId: number): Promise<PartnerInvitation[]> {
+    return Array.from(this.partnerInvitations.values()).filter(
+      (invitation) => invitation.toUserId === userId && invitation.status === "pending"
+    );
+  }
+
+  async updatePartnerInvitation(id: number, updates: Partial<PartnerInvitation>): Promise<PartnerInvitation | undefined> {
+    const invitation = this.partnerInvitations.get(id);
+    if (!invitation) return undefined;
+    
+    const updatedInvitation = { 
+      ...invitation, 
+      ...updates,
+      respondedAt: updates.status && updates.status !== "pending" ? new Date() : invitation.respondedAt
+    };
+    this.partnerInvitations.set(id, updatedInvitation);
+    return updatedInvitation;
+  }
+
+  async deletePartnerInvitation(id: number): Promise<boolean> {
+    return this.partnerInvitations.delete(id);
+  }
+
+  // Game invitation methods
+  async createGameInvitation(insertInvitation: InsertGameInvitation): Promise<GameInvitation> {
+    const id = this.currentGameInvitationId++;
+    const invitation: GameInvitation = {
+      ...insertInvitation,
+      id,
+      status: "pending",
+      roomId: null,
+      createdAt: new Date(),
+      respondedAt: null,
+      expiresAt: insertInvitation.expiresAt || new Date(Date.now() + 5 * 60 * 1000) // 5 minutes default
+    };
+    this.gameInvitations.set(id, invitation);
+    return invitation;
+  }
+
+  async getGameInvitation(id: number): Promise<GameInvitation | undefined> {
+    return this.gameInvitations.get(id);
+  }
+
+  async getUserGameInvitations(userId: number): Promise<GameInvitation[]> {
+    return Array.from(this.gameInvitations.values()).filter(
+      (invitation) => invitation.toUserId === userId && invitation.status === "pending" && 
+      invitation.expiresAt && invitation.expiresAt > new Date()
+    );
+  }
+
+  async updateGameInvitation(id: number, updates: Partial<GameInvitation>): Promise<GameInvitation | undefined> {
+    const invitation = this.gameInvitations.get(id);
+    if (!invitation) return undefined;
+    
+    const updatedInvitation = { 
+      ...invitation, 
+      ...updates,
+      respondedAt: updates.status && updates.status !== "pending" ? new Date() : invitation.respondedAt
+    };
+    this.gameInvitations.set(id, updatedInvitation);
+    return updatedInvitation;
+  }
+
+  async deleteGameInvitation(id: number): Promise<boolean> {
+    return this.gameInvitations.delete(id);
+  }
+
+  async expireOldGameInvitations(): Promise<void> {
+    const now = new Date();
+    const expiredIds: number[] = [];
+    
+    for (const [id, invitation] of this.gameInvitations.entries()) {
+      if (invitation.expiresAt && invitation.expiresAt <= now && invitation.status === "pending") {
+        expiredIds.push(id);
+      }
+    }
+    
+    for (const id of expiredIds) {
+      this.updateGameInvitation(id, { status: "expired" });
+    }
   }
 }
 
