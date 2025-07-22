@@ -528,6 +528,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get sent partner invitations for user
+  app.get("/api/partner-invitations/sent/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const invitations = await storage.getSentPartnerInvitations(userId);
+      
+      // Include recipient information
+      const invitationsWithRecipients = await Promise.all(invitations.map(async (inv) => {
+        const recipient = await storage.getUser(inv.toUserId);
+        return { ...inv, toUser: recipient };
+      }));
+      
+      res.json(invitationsWithRecipients);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user ID" });
+    }
+  });
+
   app.post("/api/partner-invitations/:id/respond", async (req, res) => {
     try {
       const invitationId = parseInt(req.params.id);

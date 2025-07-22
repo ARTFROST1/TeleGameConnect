@@ -24,6 +24,7 @@ export interface IStorage {
   createPartnerInvitation(invitation: InsertPartnerInvitation): Promise<PartnerInvitation>;
   getPartnerInvitation(id: number): Promise<PartnerInvitation | undefined>;
   getUserPartnerInvitations(userId: number): Promise<PartnerInvitation[]>;
+  getSentPartnerInvitations(userId: number): Promise<PartnerInvitation[]>;
   updatePartnerInvitation(id: number, updates: Partial<PartnerInvitation>): Promise<PartnerInvitation | undefined>;
   deletePartnerInvitation(id: number): Promise<boolean>;
 
@@ -212,6 +213,12 @@ export class MemStorage implements IStorage {
   async getUserPartnerInvitations(userId: number): Promise<PartnerInvitation[]> {
     return Array.from(this.partnerInvitations.values()).filter(
       (invitation) => invitation.toUserId === userId && invitation.status === "pending"
+    );
+  }
+
+  async getSentPartnerInvitations(userId: number): Promise<PartnerInvitation[]> {
+    return Array.from(this.partnerInvitations.values()).filter(
+      (invitation) => invitation.fromUserId === userId && invitation.status === "pending"
     );
   }
 

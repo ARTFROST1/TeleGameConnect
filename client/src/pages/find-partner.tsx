@@ -84,8 +84,8 @@ export default function FindPartner() {
             description: "Теперь вы можете играть вместе",
           });
         } else {
-          // Invitation sent
-          navigate("/dashboard");
+          // Invitation sent - refresh the context to show pending state
+          window.location.reload(); // Simple way to refresh context and show pending status
           toast({
             title: "Приглашение отправлено!",
             description: "Пользователь получит уведомление о вашем приглашении",

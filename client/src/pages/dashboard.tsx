@@ -1,3 +1,4 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ const avatarGradients = [
 ];
 
 export default function Dashboard() {
-  const { currentUser, partner } = useGame();
+  const { currentUser, partner, pendingPartnerInvitation } = useGame();
   const { toast } = useToast();
 
   const sendGameInvitation = async (gameType: 'truth_or_dare' | 'sync') => {
@@ -184,6 +185,37 @@ export default function Dashboard() {
                       Профиль
                     </Button>
                   </Link>
+                </motion.div>
+              ) : pendingPartnerInvitation ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30"
+                >
+                  <motion.div 
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(pendingPartnerInvitation.user.avatar) || 0]} opacity-75`}
+                  >
+                    {React.createElement(avatarIcons[parseInt(pendingPartnerInvitation.user.avatar) || 0], { 
+                      className: "h-5 w-5 text-white" 
+                    })}
+                  </motion.div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg">{pendingPartnerInvitation.user.username}</p>
+                    <p className="text-sm text-yellow-400 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      {pendingPartnerInvitation.type === 'sent' ? 'Ожидает подтверждения' : 'Приглашение получено'}
+                    </p>
+                  </div>
+                  <motion.div 
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="text-yellow-400"
+                  >
+                    <Clock className="h-6 w-6" />
+                  </motion.div>
                 </motion.div>
               ) : (
                 <motion.div 

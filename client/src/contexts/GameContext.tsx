@@ -6,6 +6,8 @@ interface GameContextType {
   setCurrentUser: (user: User | null) => void;
   partner: User | null;
   setPartner: (partner: User | null) => void;
+  pendingPartnerInvitation: {user: User, invitationId: number, type: 'sent' | 'received'} | null;
+  setPendingPartnerInvitation: (invitation: {user: User, invitationId: number, type: 'sent' | 'received'} | null) => void;
   currentGameRoom: number | null;
   setCurrentGameRoom: (roomId: number | null) => void;
 }
@@ -14,7 +16,8 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [partner, setPartner] = useState<User | null> (null);
+  const [partner, setPartner] = useState<User | null>(null);
+  const [pendingPartnerInvitation, setPendingPartnerInvitation] = useState<{user: User, invitationId: number, type: 'sent' | 'received'} | null>(null);
   const [currentGameRoom, setCurrentGameRoom] = useState<number | null>(null);
 
   // Load user from localStorage on mount
@@ -38,26 +41,78 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUser]);
 
-  // Load partner when user changes
+  // Load partner and pending invitations when user changes
   useEffect(() => {
-    const loadPartner = async () => {
+    const loadPartnerAndInvitations = async () => {
       if (currentUser?.partnerId) {
         try {
           const response = await fetch(`/api/users/${currentUser.partnerId}`);
           if (response.ok) {
             const partnerData = await response.json();
             setPartner(partnerData);
+            setPendingPartnerInvitation(null);
           }
         } catch (error) {
           console.error('Failed to load partner:', error);
         }
       } else {
         setPartner(null);
+        
+        // Check for pending invitations if no partner
+        if (currentUser?.id) {
+          try {
+            const [sentResponse, receivedResponse] = await Promise.all([
+              fetch(`/api/partner-invitations/sent/${currentUser.id}`),
+              fetch(`/api/partner-invitations/${currentUser.id}`)
+            ]);
+
+            if (sentResponse.ok) {
+              const sentInvitations = await sentResponse.json();
+              if (sentInvitations.length > 0) {
+                // Show the first pending sent invitation
+                const invitation = sentInvitations[0];
+                const userResponse = await fetch(`/api/users/${invitation.toUserId}`);
+                if (userResponse.ok) {
+                  const user = await userResponse.json();
+                  setPendingPartnerInvitation({
+                    user,
+                    invitationId: invitation.id,
+                    type: 'sent'
+                  });
+                  return;
+                }
+              }
+            }
+
+            if (receivedResponse.ok) {
+              const receivedInvitations = await receivedResponse.json();
+              if (receivedInvitations.length > 0) {
+                // Show the first received invitation
+                const invitation = receivedInvitations[0];
+                const userResponse = await fetch(`/api/users/${invitation.fromUserId}`);
+                if (userResponse.ok) {
+                  const user = await userResponse.json();
+                  setPendingPartnerInvitation({
+                    user,
+                    invitationId: invitation.id,
+                    type: 'received'
+                  });
+                  return;
+                }
+              }
+            }
+
+            // No pending invitations
+            setPendingPartnerInvitation(null);
+          } catch (error) {
+            console.error('Failed to load invitations:', error);
+          }
+        }
       }
     };
 
-    loadPartner();
-  }, [currentUser?.partnerId]);
+    loadPartnerAndInvitations();
+  }, [currentUser?.partnerId, currentUser?.id]);
 
   return (
     <GameContext.Provider value={{
@@ -65,6 +120,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       setCurrentUser,
       partner,
       setPartner,
+      pendingPartnerInvitation,
+      setPendingPartnerInvitation,
       currentGameRoom,
       setCurrentGameRoom
     }}>
