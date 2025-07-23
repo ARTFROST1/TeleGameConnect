@@ -122,153 +122,6 @@ function removeUserConnection(userId: number, connectionId: string) {
   }
 }
 
-// Auto-play function for test partner
-async function handleTestPartnerTurn(roomId: number) {
-  try {
-    const room = await storage.getGameRoom(roomId);
-    if (!room || room.currentPlayer !== 999) return;
-
-    if (room.gameType === 'truth_or_dare') {
-      // Auto-choose truth or dare randomly
-      const choice = Math.random() > 0.5 ? 'truth' : 'dare';
-      const questions = choice === 'truth' ? 
-        truthOrDareQuestions.filter(q => q.type === 'truth') :
-        truthOrDareQuestions.filter(q => q.type === 'dare');
-      
-      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-      
-      const gameState: GameState = room.gameData as GameState || {
-        currentQuestionIndex: 0,
-        player1Score: 0,
-        player2Score: 0
-      };
-      
-      gameState.currentQuestion = randomQuestion;
-      
-      await storage.updateGameRoom(roomId, { gameData: gameState });
-      
-      broadcast(roomId, {
-        type: 'question_assigned',
-        question: randomQuestion,
-        currentPlayer: 999
-      });
-
-      // Auto-complete the question after 3 seconds
-      setTimeout(async () => {
-        const completed = Math.random() > 0.3; // 70% chance of completing
-        
-        const updatedRoom = await storage.getGameRoom(roomId);
-        if (updatedRoom) {
-          const updatedGameState: GameState = updatedRoom.gameData as GameState || {
-            currentQuestionIndex: 0,
-            player1Score: 0,
-            player2Score: 0
-          };
-          
-          if (completed) {
-            updatedGameState.player2Score += 1;
-          }
-          
-          // Switch turn back to human player
-          const nextPlayer = updatedRoom.player1Id;
-          
-          await storage.updateGameRoom(roomId, { 
-            currentPlayer: nextPlayer,
-            gameData: updatedGameState 
-          });
-          
-          broadcast(roomId, {
-            type: 'turn_changed',
-            currentPlayer: nextPlayer,
-            scores: {
-              player1Score: updatedGameState.player1Score,
-              player2Score: updatedGameState.player2Score
-            }
-          });
-        }
-      }, 3000);
-      
-    } else if (room.gameType === 'sync') {
-      // Auto-answer sync questions
-      const answers = await storage.getGameAnswers(roomId);
-      const currentGameState = room.gameData as GameState;
-      
-      if (currentGameState && typeof currentGameState.currentQuestionIndex === 'number') {
-        const currentQuestion = syncQuestions[currentGameState.currentQuestionIndex];
-        if (currentQuestion) {
-          const hasAnswered = answers.some(a => 
-            a.questionId === currentQuestion.id && a.playerId === 999
-          );
-          
-          if (!hasAnswered) {
-            // Randomly choose an answer
-            const randomAnswer = currentQuestion.options[Math.floor(Math.random() * currentQuestion.options.length)];
-            
-            await storage.createGameAnswer({
-              roomId,
-              playerId: 999,
-              questionId: currentQuestion.id,
-              answer: randomAnswer,
-              completed: true
-            });
-            
-            // Check if both players have now answered
-            const allAnswers = await storage.getGameAnswers(roomId);
-            const currentQuestionAnswers = allAnswers.filter(a => a.questionId === currentQuestion.id);
-            
-            if (currentQuestionAnswers.length === 2) {
-              const player1Answer = currentQuestionAnswers.find(a => a.playerId === room.player1Id);
-              const player2Answer = currentQuestionAnswers.find(a => a.playerId === room.player2Id);
-              
-              const isMatch = player1Answer?.answer === player2Answer?.answer;
-              
-              const gameState: GameState = room.gameData as GameState || {
-                currentQuestionIndex: 0,
-                player1Score: 0,
-                player2Score: 0,
-                totalQuestions: 5
-              };
-              
-              if (isMatch) {
-                gameState.player1Score += 10;
-                gameState.player2Score += 10;
-              }
-              
-              gameState.currentQuestionIndex += 1;
-              
-              await storage.updateGameRoom(roomId, { gameData: gameState });
-              
-              broadcast(roomId, {
-                type: 'sync_result',
-                isMatch,
-                answers: {
-                  player1: player1Answer?.answer,
-                  player2: player2Answer?.answer
-                },
-                scores: {
-                  player1Score: gameState.player1Score,
-                  player2Score: gameState.player2Score
-                },
-                nextQuestion: gameState.currentQuestionIndex < syncQuestions.length ? 
-                  syncQuestions[gameState.currentQuestionIndex] : null,
-                gameFinished: gameState.currentQuestionIndex >= syncQuestions.length
-              });
-            } else {
-              // Notify that test partner answered
-              broadcast(roomId, {
-                type: 'partner_answered',
-                playerId: 999
-              }, 999);
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Test partner auto-play error:', error);
-  }
-}
-
 // Auto-answer function for test partner in sync games
 async function handleTestPartnerSyncAnswer(roomId: number, questionId: string) {
   try {
@@ -282,103 +135,174 @@ async function handleTestPartnerSyncAnswer(roomId: number, questionId: string) {
     
     if (hasAnswered) return; // Already answered
 
-    const currentQuestion = syncQuestions.find(q => q.id === questionId);
-    if (!currentQuestion) return;
+    // Auto-partner answers after 1-2 seconds
+    setTimeout(async () => {
+      const question = syncQuestions.find(q => q.id === questionId);
+      if (!question) return;
 
-    // Randomly choose an answer (sometimes match human player's choice)
-    const humanAnswer = answers.find(a => 
-      a.questionId === questionId && a.playerId !== 999
-    );
-    
-    let randomAnswer;
-    if (humanAnswer && Math.random() > 0.6) {
-      // 40% chance to match human's answer for more fun
-      randomAnswer = humanAnswer.answer;
-    } else {
-      // Random choice
-      randomAnswer = currentQuestion.options[Math.floor(Math.random() * currentQuestion.options.length)];
-    }
-    
-    await storage.createGameAnswer({
-      roomId,
-      playerId: 999,
-      questionId,
-      answer: randomAnswer,
-      completed: true
-    });
-    
-    // Check if both players have now answered
-    const allAnswers = await storage.getGameAnswers(roomId);
-    const currentQuestionAnswers = allAnswers.filter(a => a.questionId === questionId);
-    
-    if (currentQuestionAnswers.length === 2) {
-      const player1Answer = currentQuestionAnswers.find(a => a.playerId === room.player1Id);
-      const player2Answer = currentQuestionAnswers.find(a => a.playerId === room.player2Id);
+      // Test partner picks random answer with 70% chance to match player's answer
+      const playerAnswers = await storage.getGameAnswers(roomId);
+      const playerAnswer = playerAnswers.find(a => a.questionId === questionId && a.playerId !== 999);
       
-      const isMatch = player1Answer?.answer === player2Answer?.answer;
+      let testAnswer = question.options[Math.floor(Math.random() * question.options.length)];
       
+      if (playerAnswer && Math.random() < 0.7) {
+        testAnswer = playerAnswer.answer || testAnswer;
+      }
+
+      await storage.createGameAnswer({
+        roomId,
+        playerId: 999,
+        questionId,
+        answer: testAnswer,
+        completed: true
+      });
+
+      // Check if both players have now answered
+      const allAnswers = await storage.getGameAnswers(roomId);
+      const currentQuestionAnswers = allAnswers.filter(a => a.questionId === questionId);
+      
+      if (currentQuestionAnswers.length === 2) {
+        const player1Answer = currentQuestionAnswers.find(a => a.playerId === room.player1Id);
+        const player2Answer = currentQuestionAnswers.find(a => a.playerId === room.player2Id);
+        
+        const isMatch = player1Answer?.answer === player2Answer?.answer;
+        
+        const gameState: GameState = room.gameData as GameState || {
+          currentQuestionIndex: 0,
+          player1Score: 0,
+          player2Score: 0,
+          totalQuestions: 5
+        };
+        
+        if (isMatch) {
+          gameState.player1Score += 10;
+          gameState.player2Score += 10;
+        }
+        
+        gameState.currentQuestionIndex += 1;
+        
+        await storage.updateGameRoom(roomId, { gameData: gameState });
+        
+        broadcast(roomId, {
+          type: 'sync_result',
+          isMatch,
+          answers: {
+            player1: player1Answer?.answer,
+            player2: player2Answer?.answer
+          },
+          scores: {
+            player1Score: gameState.player1Score,
+            player2Score: gameState.player2Score
+          },
+          nextQuestion: gameState.currentQuestionIndex < syncQuestions.length ? 
+            syncQuestions[gameState.currentQuestionIndex] : null,
+          gameFinished: gameState.currentQuestionIndex >= syncQuestions.length
+        });
+        
+        // Update user stats if game finished
+        if (gameState.currentQuestionIndex >= syncQuestions.length) {
+          const user1 = await storage.getUser(room.player1Id);
+          const user2 = await storage.getUser(room.player2Id);
+          
+          if (user1 && user1.id !== 999) {
+            await storage.updateUser(user1.id, {
+              gamesPlayed: user1.gamesPlayed + 1,
+              syncScore: Math.round((gameState.player1Score / (syncQuestions.length * 10)) * 100)
+            });
+          }
+          
+          if (user2 && user2.id !== 999) {
+            await storage.updateUser(user2.id, {
+              gamesPlayed: user2.gamesPlayed + 1,
+              syncScore: Math.round((gameState.player2Score / (syncQuestions.length * 10)) * 100)
+            });
+          }
+          
+          await storage.updateGameRoom(roomId, { status: 'finished' });
+        }
+      } else {
+        // Notify that test partner answered
+        broadcast(roomId, {
+          type: 'partner_answered',
+          playerId: 999
+        }, 999);
+      }
+    }, Math.random() * 1000 + 1000); // 1-2 seconds delay
+  } catch (error) {
+    console.error('Test partner sync answer error:', error);
+  }
+}
+
+// Auto-play function for test partner - Truth or Dare
+async function handleTestPartnerTurn(roomId: number) {
+  try {
+    const room = await storage.getGameRoom(roomId);
+    if (room && room.gameType === 'truth_or_dare' && room.currentPlayer === 999) {
+      // Test partner picks random choice with 60% dare, 40% truth
+      const choice = Math.random() < 0.6 ? 'dare' : 'truth';
+      const questions = choice === 'truth' ? 
+        truthOrDareQuestions.filter(q => q.type === 'truth') :
+        truthOrDareQuestions.filter(q => q.type === 'dare');
+      
+      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+      
+      // Update game state with current question
       const gameState: GameState = room.gameData as GameState || {
         currentQuestionIndex: 0,
         player1Score: 0,
-        player2Score: 0,
-        totalQuestions: 5
+        player2Score: 0
       };
       
-      if (isMatch) {
-        gameState.player1Score += 10;
-        gameState.player2Score += 10;
-      }
-      
-      gameState.currentQuestionIndex += 1;
-      
+      gameState.currentQuestion = randomQuestion;
       await storage.updateGameRoom(roomId, { gameData: gameState });
       
+      // Send choice to players
       broadcast(roomId, {
-        type: 'sync_result',
-        isMatch,
-        answers: {
-          player1: player1Answer?.answer,
-          player2: player2Answer?.answer
-        },
-        scores: {
-          player1Score: gameState.player1Score,
-          player2Score: gameState.player2Score
-        },
-        nextQuestion: gameState.currentQuestionIndex < syncQuestions.length ? 
-          syncQuestions[gameState.currentQuestionIndex] : null,
-        gameFinished: gameState.currentQuestionIndex >= syncQuestions.length
+        type: 'question_assigned',
+        question: randomQuestion,
+        currentPlayer: 999,
+        choice
       });
       
-      // Update user stats if game finished
-      if (gameState.currentQuestionIndex >= syncQuestions.length) {
-        const user1 = await storage.getUser(room.player1Id);
-        const user2 = await storage.getUser(room.player2Id);
+      // Wait 3-5 seconds then complete task (85% success rate)
+      setTimeout(async () => {
+        const completed = Math.random() < 0.85;
+        const updatedGameState: GameState = room.gameData as GameState || {
+          currentQuestionIndex: 0,
+          player1Score: 0,
+          player2Score: 0
+        };
         
-        if (user1 && user1.id !== 999) {
-          await storage.updateUser(user1.id, {
-            gamesPlayed: user1.gamesPlayed + 1,
-            syncScore: Math.round((gameState.player1Score / (syncQuestions.length * 10)) * 100)
-          });
+        if (completed) {
+          updatedGameState.player2Score += 1; // Test partner is player 2
         }
         
-        if (user2 && user2.id !== 999) {
-          await storage.updateUser(user2.id, {
-            gamesPlayed: user2.gamesPlayed + 1,
-            syncScore: Math.round((gameState.player2Score / (syncQuestions.length * 10)) * 100)
-          });
-        }
+        updatedGameState.currentQuestionIndex += 1;
+        const turnHistory = (updatedGameState as any).turnHistory || [];
+        turnHistory.push(`TestPartner: ${randomQuestion.text} - ${completed ? 'Выполнено' : 'Пропущено'}`);
+        (updatedGameState as any).turnHistory = turnHistory;
         
-        await storage.updateGameRoom(roomId, { status: 'finished' });
-      }
-    } else {
-      // Notify that test partner answered
-      broadcast(roomId, {
-        type: 'partner_answered',
-        playerId: 999
-      }, 999);
+        // Switch turn back to real player
+        const nextPlayer = room.player1Id;
+        
+        await storage.updateGameRoom(roomId, { 
+          currentPlayer: nextPlayer,
+          gameData: updatedGameState 
+        });
+        
+        broadcast(roomId, {
+          type: 'turn_changed',
+          currentPlayer: nextPlayer,
+          gameState: updatedGameState,
+          completed,
+          playerId: 999
+        });
+        
+      }, Math.random() * 2000 + 3000); // 3-5 seconds
     }
   } catch (error) {
-    console.error('Test partner sync answer error:', error);
+    console.error('Test partner turn error:', error);
   }
 }
 
@@ -793,11 +717,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send to both players via WebSocket - use user connections since players may not be in room yet
         [gameRoom.player1Id, gameRoom.player2Id].forEach(playerId => {
           // Find all user connections for this player
-          for (const client of clients.values()) {
+          Array.from(clients.values()).forEach(client => {
             if (client.userId === playerId && client.ws.readyState === WebSocket.OPEN) {
               client.ws.send(JSON.stringify(gameStartMessage));
             }
-          }
+          });
         });
         
         res.json({ success: true, roomId: gameRoom.id });
@@ -983,8 +907,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               currentPlayer: playerId
             });
           }
-        } else if (message.type === 'truth_or_dare_complete') {
-            const { roomId: completeRoomId, playerId: completePlayerId, completed } = message;
+        } else if (message.type === 'turn_completed') {
+            const { roomId: completeRoomId, playerId: completePlayerId, completed, nextPlayer, gameState: updatedGameState } = message;
             const completeRoom = await storage.getGameRoom(completeRoomId);
             
             if (completeRoom) {

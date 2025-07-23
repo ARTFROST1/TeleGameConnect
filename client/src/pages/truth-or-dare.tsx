@@ -68,6 +68,69 @@ export default function TruthOrDare() {
     roomId: parseInt(roomId || '0'),
   });
 
+  // Handle WebSocket messages
+  useEffect(() => {
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Truth or Dare WebSocket message:', message);
+
+        switch (message.type) {
+          case 'question_assigned':
+            // Partner selected a question
+            if (message.currentPlayer !== currentUser?.id) {
+              setCurrentQuestion(message.question);
+              setSelectedChoice(message.choice);
+            }
+            break;
+            
+          case 'turn_changed':
+            // Update game state and switch turns
+            setGameState(message.gameState);
+            setIsMyTurn(message.currentPlayer === currentUser?.id);
+            setSelectedChoice(null);
+            setCurrentQuestion(null);
+            setTimeLeft(0);
+            
+            if (message.currentPlayer === currentUser?.id) {
+              toast({
+                title: "Ваш ход!",
+                description: "Выберите правду или действие",
+              });
+            } else {
+              const playerName = message.currentPlayer === 999 ? "TestPartner" : "Партнёр";
+              toast({
+                title: `Ход ${playerName}`,
+                description: "Ожидаем выбор...",
+              });
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    // Add event listener for WebSocket messages
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'join',
+        userId: currentUser?.id,
+        roomId: parseInt(roomId || '0')
+      }));
+    };
+    
+    ws.onmessage = handleWebSocketMessage;
+    
+    return () => {
+      ws.close();
+    };
+  }, [currentUser?.id, roomId, toast]);
+
   // Load game room data
   useEffect(() => {
     const loadGameRoom = async () => {

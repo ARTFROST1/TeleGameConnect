@@ -24,7 +24,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/find-partner" component={FindPartner} />
-      <Route path="/truth-or-dare" component={TruthOrDare} />
+      <Route path="/truth-or-dare/:roomId" component={TruthOrDare} />
       <Route path="/sync-game" component={SyncGame} />
       <Route path="/statistics" component={Statistics} />
       <Route path="/game-history" component={GameHistory} />

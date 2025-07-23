@@ -86,11 +86,15 @@ export function useWebSocket({
             case 'sync_result':
               // Handle sync game results
               break;
-            case 'game_start':
+            case 'game_started':
               // Handle game start signal - navigate to game room
               console.log('Game starting:', message);
-              if (message.roomId && window.location.pathname.includes('/dashboard')) {
-                window.location.href = `/game/${message.roomId}`;
+              if (message.roomId) {
+                if (message.gameType === 'truth_or_dare') {
+                  window.location.href = `/truth-or-dare/${message.roomId}`;
+                } else {
+                  window.location.href = `/game/${message.roomId}`;
+                }
               }
               break;
             default:
