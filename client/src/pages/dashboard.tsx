@@ -235,7 +235,18 @@ export default function Dashboard() {
               <h1 className="text-3xl font-bold text-gradient">
                 {(user as any)?.username}
               </h1>
-              <p className="text-muted-foreground">ID: #{(user as any)?.id}</p>
+              <div className="flex items-center space-x-3">
+                <p className="text-muted-foreground">ID: #{(user as any)?.id}</p>
+                <div className="flex items-center space-x-1">
+                  {isConnected ? (
+                    <><Wifi size={12} className="text-green-400" />
+                    <span className="text-xs text-green-400">Онлайн</span></>
+                  ) : (
+                    <><WifiOff size={12} className="text-red-400" />
+                    <span className="text-xs text-red-400">Офлайн</span></>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </div>
           <motion.div
