@@ -44,7 +44,7 @@ export default function Dashboard() {
     },
     onPartnerUpdate: (partner: UserType) => {
       setPartner(partner);
-      setCurrentUser(prev => prev ? { ...prev, partnerId: partner.id } : null);
+      setCurrentUser((prev: UserType | null) => prev ? { ...prev, partnerId: partner.id } : null);
       setCurrentInvitation(null);
     },
     onGameInvitation: (notification: Notification) => {
@@ -61,7 +61,10 @@ export default function Dashboard() {
         title: "Игра принята!",
         description: `${notification.fromUser?.username} принял ваше приглашение`,
       });
-      // Could redirect to game room here when created
+      // Navigate to game room
+      if (notification.roomId) {
+        navigate(`/game/${notification.roomId}`);
+      }
     }
   });
 

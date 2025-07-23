@@ -150,21 +150,22 @@ export class MemStorage implements IStorage {
   }
 
   async updateGameRoom(id: number, updates: Partial<GameRoom>): Promise<GameRoom | undefined> {
-    const gameRoom = this.gameRooms.get(id);
-    if (!gameRoom) return undefined;
+    const room = this.gameRooms.get(id);
+    if (!room) return undefined;
     
-    const updatedGameRoom = { ...gameRoom, ...updates };
-    this.gameRooms.set(id, updatedGameRoom);
-    return updatedGameRoom;
+    const updatedRoom = { ...room, ...updates };
+    this.gameRooms.set(id, updatedRoom);
+    return updatedRoom;
   }
 
   async getActiveGameRoomForUser(userId: number): Promise<GameRoom | undefined> {
-    return Array.from(this.gameRooms.values()).find(
-      (room) => 
-        (room.player1Id === userId || room.player2Id === userId) &&
-        room.status === "active"
+    const rooms = Array.from(this.gameRooms.values());
+    return rooms.find(room => 
+      (room.player1Id === userId || room.player2Id === userId) && room.status === 'active'
     );
   }
+
+
 
   async createGameAnswer(insertGameAnswer: InsertGameAnswer): Promise<GameAnswer> {
     const id = this.currentGameAnswerId++;

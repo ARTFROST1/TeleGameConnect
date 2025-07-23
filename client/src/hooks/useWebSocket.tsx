@@ -10,6 +10,7 @@ interface WebSocketMessage {
 
 interface UseWebSocketProps {
   roomId?: number;
+  sendMessage?: (message: any) => void;
   onPartnerInvitationReceived?: (notification: Notification) => void;
   onPartnerUpdate?: (partner: UserType) => void;
   onGameInvitation?: (notification: Notification) => void;
@@ -22,7 +23,7 @@ export function useWebSocket({
   onPartnerUpdate,
   onGameInvitation,
   onGameAccepted
-}: UseWebSocketProps = {}) {
+}: UseWebSocketProps = {}): { isConnected: boolean; sendMessage: (message: any) => void } {
   const { currentUser } = useGame();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);

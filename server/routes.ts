@@ -873,6 +873,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Game answers endpoint
+  app.post("/api/game-answers", async (req, res) => {
+    try {
+      const answerData = req.body;
+      const answer = await storage.createGameAnswer(answerData);
+      res.json(answer);
+    } catch (error) {
+      console.error("Error creating game answer:", error);
+      res.status(500).json({ message: "Failed to save answer" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // WebSocket server

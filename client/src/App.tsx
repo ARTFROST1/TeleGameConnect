@@ -29,6 +29,7 @@ function Router() {
       <Route path="/statistics" component={Statistics} />
       <Route path="/game-history" component={GameHistory} />
       <Route path="/profile" component={Profile} />
+      <Route path="/game/:roomId" component={TruthOrDare} />
       <Route component={NotFound} />
     </Switch>
   );
