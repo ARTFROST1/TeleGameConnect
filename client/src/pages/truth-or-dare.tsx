@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useGame } from '@/contexts/GameContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { useToast } from '@/hooks/use-toast';
 import { User as UserType, GameRoom } from '@shared/schema';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 interface TruthOrDareQuestion {
   id: string;
@@ -14,27 +10,10 @@ interface TruthOrDareQuestion {
   text: string;
 }
 
-const truthOrDareQuestions: TruthOrDareQuestion[] = [
-  // Truth questions
-  { id: 'truth1', type: 'truth', text: 'Расскажи самый неловкий момент с детства' },
-  { id: 'truth2', type: 'truth', text: 'О чём ты мечтаешь, но боишься рассказать?' },
-  { id: 'truth3', type: 'truth', text: 'Какая твоя самая большая слабость?' },
-  { id: 'truth4', type: 'truth', text: 'Что бы ты изменил в себе, если бы мог?' },
-  { id: 'truth5', type: 'truth', text: 'Какой самый странный сон тебе снился?' },
-  
-  // Dare questions
-  { id: 'dare1', type: 'dare', text: 'Сними 5-секундное видео, где ты поёшь как кот' },
-  { id: 'dare2', type: 'dare', text: 'Сделай селфи с самым смешным лицом' },
-  { id: 'dare3', type: 'dare', text: 'Расскажи стихотворение голосом робота' },
-  { id: 'dare4', type: 'dare', text: 'Покажи свой лучший танцевальный движ' },
-  { id: 'dare5', type: 'dare', text: 'Изобрази любимое животное без слов' },
-];
-
 export default function TruthOrDare() {
   const { roomId } = useParams();
   const [, navigate] = useLocation();
   const { currentUser } = useGame();
-  const { toast } = useToast();
   
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<TruthOrDareQuestion | null>(null);
@@ -58,53 +37,37 @@ export default function TruthOrDare() {
     roomId: parseInt(roomId || '0'),
   });
 
-  // Handle WebSocket messages
+  // Listen for WebSocket messages specific to Truth or Dare game
   useEffect(() => {
-    const handleWebSocketMessage = (event: MessageEvent) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('Truth or Dare WebSocket message:', message);
-
-        switch (message.type) {
-          case 'question_assigned':
-            // Both players see the same question
-            setCurrentQuestion(message.question);
-            setSelectedChoice(message.choice);
-            break;
-            
-          case 'turn_changed':
-            // Update game state and switch turns
-            setGameState(message.gameState);
-            setIsMyTurn(message.currentPlayer === currentUser?.id);
-            setSelectedChoice(null);
-            setCurrentQuestion(null);
-            setTimeLeft(0);
-            break;
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+    const handleMessage = (event: CustomEvent) => {
+      const message = event.detail;
+      switch (message.type) {
+        case 'question_assigned':
+          // Both players see the same question and choice
+          setCurrentQuestion(message.question);
+          setSelectedChoice(message.choice);
+          if (message.currentPlayer === currentUser?.id) {
+            setTimeLeft(120); // 2 minutes for the current player
+          }
+          break;
+          
+        case 'turn_changed':
+          // Update game state and switch turns
+          setGameState(message.gameState);
+          setIsMyTurn(message.currentPlayer === currentUser?.id);
+          setSelectedChoice(null);
+          setCurrentQuestion(null);
+          setTimeLeft(0);
+          break;
       }
     };
 
-    // Add event listener for WebSocket messages
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: 'join',
-        userId: currentUser?.id,
-        roomId: parseInt(roomId || '0')
-      }));
-    };
-    
-    ws.onmessage = handleWebSocketMessage;
-    
+    // Listen for custom WebSocket events from the hook
+    window.addEventListener('truth-or-dare-message', handleMessage as EventListener);
     return () => {
-      ws.close();
+      window.removeEventListener('truth-or-dare-message', handleMessage as EventListener);
     };
-  }, [currentUser?.id, roomId, toast]);
+  }, [currentUser?.id]);
 
   // Load game room data
   useEffect(() => {
@@ -138,19 +101,11 @@ export default function TruthOrDare() {
           setIsMyTurn(room.currentPlayer === currentUser?.id);
           
         } else {
-          toast({
-            title: "Ошибка",
-            description: "Комната не найдена",
-            variant: "destructive"
-          });
+          console.error("Game room not found");
           navigate("/dashboard");
         }
       } catch (error) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить игру",
-          variant: "destructive"
-        });
+        console.error("Failed to load game room:", error);
         navigate("/dashboard");
       } finally {
         setIsLoading(false);
@@ -158,7 +113,7 @@ export default function TruthOrDare() {
     };
 
     loadGameRoom();
-  }, [roomId, currentUser?.id, navigate, toast]);
+  }, [roomId, currentUser?.id, navigate]);
 
   // Timer for turns
   useEffect(() => {
@@ -169,19 +124,14 @@ export default function TruthOrDare() {
   }, [isMyTurn, timeLeft]);
 
   const selectChoice = (choice: 'truth' | 'dare') => {
-    setSelectedChoice(choice);
-    const questions = truthOrDareQuestions.filter(q => q.type === choice);
-    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-    setCurrentQuestion(randomQuestion);
-    setTimeLeft(120); // 2 minutes to complete
+    if (!currentUser || !isMyTurn) return;
     
-    // Send choice to all players via WebSocket
+    // Send choice to server - server will generate the question and broadcast to all players
     sendMessage({
       type: 'truth_or_dare_choice',
       roomId: parseInt(roomId || '0'),
-      playerId: currentUser?.id,
-      choice,
-      question: randomQuestion
+      playerId: currentUser.id,
+      choice
     });
   };
 
@@ -325,9 +275,9 @@ export default function TruthOrDare() {
           {/* Current Turn Indicator */}
           <div className="text-center">
             {isMyTurn ? (
-              <p className="text-green-400 font-semibold">🎯 Ваш ход!</p>
+              <p className="text-white font-semibold">🎯 Ваш ход!</p>
             ) : (
-              <p className="text-orange-400">⏰ Ход партнёра...</p>
+              <p className="text-white/70">Ход соперника...</p>
             )}
           </div>
         </div>
@@ -350,6 +300,15 @@ export default function TruthOrDare() {
                 >
                   🔥 Действие
                 </button>
+              </div>
+            </div>
+          )}
+
+          {!selectedChoice && !isMyTurn && (
+            <div className="text-center">
+              <h2 className="text-white text-xl mb-6">Соперник выбирает категорию...</h2>
+              <div className="animate-pulse">
+                <div className="w-8 h-8 bg-white/20 rounded-full mx-auto"></div>
               </div>
             </div>
           )}
@@ -401,49 +360,31 @@ export default function TruthOrDare() {
                 </div>
               )}
 
-              {!isMyTurn && currentQuestion && (
+              {!isMyTurn && (
                 <div className="text-center">
-                  <p className="text-white/70 mb-4">
-                    {currentUser?.id === gameRoom.currentPlayer ? 'Ваш партнёр' : 'Партнёр'} выполняет задание...
-                  </p>
+                  <p className="text-white/70 mb-4">Соперник выполняет задание...</p>
                   <div className="animate-pulse">
-                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce"></div>
-                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-8 h-8 bg-white/20 rounded-full mx-auto"></div>
                   </div>
                 </div>
               )}
             </div>
           )}
+        </div>
 
-          {!currentQuestion && !isMyTurn && (
-            <div className="text-center">
-              <p className="text-white text-lg mb-4">Ожидаем выбор партнёра...</p>
-              <div className="animate-pulse">
-                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce"></div>
-                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
+        {/* Game History */}
+        {gameState.turnHistory && gameState.turnHistory.length > 0 && (
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mt-6">
+            <h3 className="text-white font-semibold mb-4">История игры:</h3>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {gameState.turnHistory.map((turn, index) => (
+                <div key={index} className="text-white/70 text-sm bg-white/5 rounded-lg p-2">
+                  {turn}
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-
-        {/* Game Stats */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4">
-          <div className="flex justify-between items-center text-white/70 text-sm">
-            <span>Ход: {gameState.currentQuestionIndex + 1}</span>
-            <button
-              onClick={() => {
-                if (confirm('Вы уверены, что хотите завершить игру?')) {
-                  navigate('/dashboard');
-                }
-              }}
-              className="text-red-400 hover:text-red-300 transition-colors"
-            >
-              Завершить игру
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

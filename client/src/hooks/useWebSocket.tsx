@@ -69,19 +69,18 @@ export function useWebSocket({
               handleNotification(message.notification);
               break;
             case 'game_start':
-              toast({
-                title: "Игра началась!",
-                description: "Оба игрока подключены. Удачи!",
-              });
+              // Remove toast notification to reduce distractions in game
               break;
             case 'turn_changed':
-              // Handle turn changes in game
+              // Dispatch custom event for Truth or Dare game
+              window.dispatchEvent(new CustomEvent('truth-or-dare-message', { detail: message }));
+              break;
+            case 'question_assigned':
+              // Dispatch custom event for Truth or Dare game
+              window.dispatchEvent(new CustomEvent('truth-or-dare-message', { detail: message }));
               break;
             case 'partner_answered':
-              toast({
-                title: "Партнёр ответил",
-                description: "Ваш партнёр дал ответ на вопрос",
-              });
+              // Remove toast notification to reduce distractions in game
               break;
             case 'sync_result':
               // Handle sync game results

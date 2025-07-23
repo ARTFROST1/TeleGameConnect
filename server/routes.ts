@@ -900,9 +900,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             await storage.updateGameRoom(todRoomId, { gameData: gameState });
             
+            // Broadcast the same question to ALL players in the room
             broadcast(todRoomId, {
               type: 'question_assigned',
               question: randomQuestion,
+              choice: choice,
               currentPlayer: playerId
             });
           }
