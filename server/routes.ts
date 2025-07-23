@@ -836,7 +836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WebSocket server
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('WebSocket connection attempt from:', req.url);
     const connectionId = generateConnectionId();
     let userId: number | null = null;
 

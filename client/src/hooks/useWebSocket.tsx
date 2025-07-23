@@ -34,8 +34,13 @@ export function useWebSocket({
     if (!currentUser) return;
 
     try {
+      // In development, connect directly to the Express server port
+      const isDev = import.meta.env.DEV;
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const host = isDev ? window.location.hostname + ':5000' : window.location.host;
+      const wsUrl = `${protocol}//${host}/ws`;
+      
+      console.log('Connecting to WebSocket:', wsUrl, 'isDev:', isDev);
       
       wsRef.current = new WebSocket(wsUrl);
 
@@ -108,14 +113,15 @@ export function useWebSocket({
         }
       };
 
-      wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
+      wsRef.current.onclose = (event) => {
+        console.log('WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
         setConnectionId(null);
         
         // Attempt to reconnect after 3 seconds
         setTimeout(() => {
           if (currentUser) {
+            console.log('Attempting to reconnect...');
             connect();
           }
         }, 3000);
@@ -123,6 +129,7 @@ export function useWebSocket({
 
       wsRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
+        console.error('Failed to connect to:', wsUrl);
         setIsConnected(false);
       };
 

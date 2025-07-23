@@ -112,8 +112,9 @@ export default function TruthOrDare() {
           }
           
           // Check if it's current user's turn
-          setIsMyTurn(room.currentPlayer === currentUser?.id);
-          console.log('Current player in room:', room.currentPlayer, 'Current user ID:', currentUser?.id, 'Is my turn:', room.currentPlayer === currentUser?.id);
+          const isCurrentPlayerTurn = room.currentPlayer === currentUser?.id;
+          setIsMyTurn(isCurrentPlayerTurn);
+          console.log('Load game room - Current player in room:', room.currentPlayer, 'Current user ID:', currentUser?.id, 'Is my turn:', isCurrentPlayerTurn);
           
         } else {
           console.error("Game room not found");
@@ -139,17 +140,25 @@ export default function TruthOrDare() {
   }, [isMyTurn, timeLeft]);
 
   const selectChoice = (choice: 'truth' | 'dare') => {
+    console.log('selectChoice called with:', choice, {
+      hasCurrentUser: !!currentUser,
+      currentUserId: currentUser?.id,
+      isMyTurn,
+      gameRoomCurrentPlayer: gameRoom?.currentPlayer,
+      selectedChoice
+    });
+    
     if (!currentUser || !isMyTurn) {
-      console.log('Cannot select choice:', { 
-        currentUser: !!currentUser, 
-        isMyTurn, 
-        currentUserId: currentUser?.id, 
-        gameRoomCurrentPlayer: gameRoom?.currentPlayer 
-      });
+      console.log('Cannot select choice - conditions not met');
       return;
     }
     
-    console.log('Selecting choice:', choice, 'for player', currentUser.id);
+    console.log('Sending truth_or_dare_choice message:', {
+      type: 'truth_or_dare_choice',
+      roomId: parseInt(roomId || '0'),
+      playerId: currentUser.id,
+      choice
+    });
     
     // Send choice to server - server will generate the question and broadcast to all players
     sendMessage({
@@ -318,6 +327,12 @@ export default function TruthOrDare() {
 
         {/* Game Content */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+          {/* Debug info - remove later */}
+          <div className="text-white/50 text-xs mb-4 space-y-1">
+            <div>Debug: selectedChoice={selectedChoice}, isMyTurn={isMyTurn ? 'true' : 'false'}</div>
+            <div>currentUser={currentUser?.id}, gameRoom.currentPlayer={gameRoom?.currentPlayer}</div>
+          </div>
+          
           {!selectedChoice && isMyTurn && (
             <div className="text-center">
               <h2 className="text-white text-xl mb-6">Выберите категорию:</h2>
