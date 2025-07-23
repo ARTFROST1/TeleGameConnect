@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { useGame } from '@/contexts/GameContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { User as UserType, GameRoom } from '@shared/schema';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface TruthOrDareQuestion {
   id: string;
@@ -31,6 +32,7 @@ export default function TruthOrDare() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedChoice, setSelectedChoice] = useState<'truth' | 'dare' | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   // WebSocket for real-time game updates
   const { sendMessage } = useWebSocket({
@@ -41,6 +43,8 @@ export default function TruthOrDare() {
   useEffect(() => {
     const handleMessage = (event: CustomEvent) => {
       const message = event.detail;
+      console.log('Truth or Dare message received:', message);
+      
       switch (message.type) {
         case 'question_assigned':
           // Both players see the same question and choice
@@ -59,6 +63,12 @@ export default function TruthOrDare() {
           setCurrentQuestion(null);
           setTimeLeft(0);
           break;
+          
+        case 'player_left_game':
+          // Show notification that partner left the game
+          alert(`${message.playerName} покинул игру`);
+          navigate('/dashboard');
+          break;
       }
     };
 
@@ -67,7 +77,7 @@ export default function TruthOrDare() {
     return () => {
       window.removeEventListener('truth-or-dare-message', handleMessage as EventListener);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, navigate]);
 
   // Load game room data
   useEffect(() => {
@@ -99,6 +109,7 @@ export default function TruthOrDare() {
           
           // Check if it's current user's turn
           setIsMyTurn(room.currentPlayer === currentUser?.id);
+          console.log('Current player in room:', room.currentPlayer, 'Current user ID:', currentUser?.id, 'Is my turn:', room.currentPlayer === currentUser?.id);
           
         } else {
           console.error("Game room not found");
@@ -124,7 +135,17 @@ export default function TruthOrDare() {
   }, [isMyTurn, timeLeft]);
 
   const selectChoice = (choice: 'truth' | 'dare') => {
-    if (!currentUser || !isMyTurn) return;
+    if (!currentUser || !isMyTurn) {
+      console.log('Cannot select choice:', { 
+        currentUser: !!currentUser, 
+        isMyTurn, 
+        currentUserId: currentUser?.id, 
+        gameRoomCurrentPlayer: gameRoom?.currentPlayer 
+      });
+      return;
+    }
+    
+    console.log('Selecting choice:', choice, 'for player', currentUser.id);
     
     // Send choice to server - server will generate the question and broadcast to all players
     sendMessage({
@@ -205,6 +226,21 @@ export default function TruthOrDare() {
     }
   };
 
+  const handleExitGame = () => {
+    if (!currentUser || !gameRoom) return;
+    
+    // Notify other player that this player is leaving
+    sendMessage({
+      type: 'player_left_game',
+      roomId: parseInt(roomId || '0'),
+      playerId: currentUser.id,
+      playerName: currentUser.username
+    });
+    
+    // Navigate back to dashboard
+    navigate('/dashboard');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -239,12 +275,29 @@ export default function TruthOrDare() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-white">Правда или Действие</h1>
-            <button 
-              onClick={() => navigate("/dashboard")}
-              className="text-white/70 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
+            <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+              <AlertDialogTrigger asChild>
+                <button 
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Выйти из игры?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Вы уверены, что хотите покинуть игру? Ваш партнёр получит уведомление о том, что вы завершили игру.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleExitGame}>
+                    Выйти из игры
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           
           {/* Players */}

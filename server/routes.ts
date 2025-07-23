@@ -969,6 +969,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }, 2000); // 2 second delay for realistic feel
               }
             }
+        } else if (message.type === 'player_left_game') {
+          const { roomId: leftRoomId, playerId: leftPlayerId, playerName } = message;
+          
+          // Broadcast to other players in the room that this player left
+          broadcast(leftRoomId, {
+            type: 'player_left_game',
+            playerId: leftPlayerId,
+            playerName
+          }, leftPlayerId); // Exclude the leaving player
+          
         } else if (message.type === 'sync_answer') {
             const { roomId: syncRoomId, playerId: syncPlayerId, questionId, answer } = message;
             

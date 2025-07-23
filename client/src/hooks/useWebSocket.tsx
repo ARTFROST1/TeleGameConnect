@@ -79,6 +79,10 @@ export function useWebSocket({
               // Dispatch custom event for Truth or Dare game
               window.dispatchEvent(new CustomEvent('truth-or-dare-message', { detail: message }));
               break;
+            case 'player_left_game':
+              // Dispatch custom event for player leaving game
+              window.dispatchEvent(new CustomEvent('truth-or-dare-message', { detail: message }));
+              break;
             case 'partner_answered':
               // Remove toast notification to reduce distractions in game
               break;
