@@ -883,6 +883,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { choice, roomId: todRoomId, playerId } = message;
           const todRoom = await storage.getGameRoom(todRoomId);
           
+          console.log(`Truth or dare choice: ${choice} from player ${playerId} in room ${todRoomId}. Current player in room: ${todRoom?.currentPlayer}`);
+          
           if (todRoom && todRoom.currentPlayer === playerId) {
             const questions = choice === 'truth' ? 
               truthOrDareQuestions.filter(q => q.type === 'truth') :
@@ -900,6 +902,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             await storage.updateGameRoom(todRoomId, { gameData: gameState });
             
+            console.log(`Broadcasting question to room ${todRoomId}: ${randomQuestion.text}`);
+            
             // Broadcast the same question to ALL players in the room
             broadcast(todRoomId, {
               type: 'question_assigned',
@@ -911,6 +915,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (message.type === 'turn_changed') {
             // Handle turn change in Truth or Dare
             const { roomId: turnRoomId, currentPlayer: newCurrentPlayer, gameState: newGameState } = message;
+            
+            console.log(`Broadcasting turn change to room ${turnRoomId}, new current player: ${newCurrentPlayer}`);
             
             // Broadcast turn change to all players
             broadcast(turnRoomId, {

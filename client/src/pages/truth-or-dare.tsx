@@ -48,6 +48,7 @@ export default function TruthOrDare() {
       switch (message.type) {
         case 'question_assigned':
           // Both players see the same question and choice
+          console.log('Question assigned received:', message, 'Current user ID:', currentUser?.id);
           setCurrentQuestion(message.question);
           setSelectedChoice(message.choice);
           if (message.currentPlayer === currentUser?.id) {
@@ -57,8 +58,11 @@ export default function TruthOrDare() {
           
         case 'turn_changed':
           // Update game state and switch turns
+          console.log('Turn changed received:', message, 'Current user ID:', currentUser?.id);
           setGameState(message.gameState);
-          setIsMyTurn(message.currentPlayer === currentUser?.id);
+          const newIsMyTurn = message.currentPlayer === currentUser?.id;
+          console.log('Setting isMyTurn to:', newIsMyTurn);
+          setIsMyTurn(newIsMyTurn);
           setSelectedChoice(null);
           setCurrentQuestion(null);
           setTimeLeft(0);
@@ -218,7 +222,7 @@ export default function TruthOrDare() {
       setSelectedChoice(null);
       setCurrentQuestion(null);
       setTimeLeft(0);
-      setIsMyTurn(false);
+      // Don't set isMyTurn here - it will be updated via WebSocket message
       setGameState(newGameState);
 
     } catch (error) {
