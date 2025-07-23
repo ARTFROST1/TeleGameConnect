@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Star, Heart, Flame, Settings, Plus, Users, MessageCircleQuestion, RotateCcw, ChevronRight, BarChart, Trophy, Clock, Zap, History } from "lucide-react";
+import { User, Star, Heart, Flame, Settings, Plus, Users, MessageCircleQuestion, RotateCcw, ChevronRight, BarChart, Trophy, Clock, Zap, History, Wifi, WifiOff } from "lucide-react";
 import { Link } from "wouter";
 import { useGame } from "@/contexts/GameContext";
 import { NotificationSystem } from "@/components/NotificationSystem";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { PartnerInvitationDialog } from "@/components/PartnerInvitationDialog";
+import { User as UserType, Notification } from "@shared/schema";
 
 const avatarIcons = [User, Star, Heart, Flame];
 const avatarGradients = [
@@ -21,6 +24,33 @@ const avatarGradients = [
 export default function Dashboard() {
   const { currentUser, partner, pendingPartnerInvitation, setPendingPartnerInvitation, setCurrentUser, setPartner } = useGame();
   const { toast } = useToast();
+  const [currentInvitation, setCurrentInvitation] = useState<{fromUser: UserType, invitationId: number} | null>(null);
+  const [isRespondingToInvitation, setIsRespondingToInvitation] = useState(false);
+
+  // WebSocket connection for real-time notifications
+  const { isConnected } = useWebSocket({
+    onPartnerInvitationReceived: (notification: Notification) => {
+      if (notification.fromUser && notification.invitationId) {
+        setCurrentInvitation({
+          fromUser: notification.fromUser as UserType,
+          invitationId: notification.invitationId
+        });
+      }
+    },
+    onPartnerUpdate: (partner: UserType) => {
+      setPartner(partner);
+      setCurrentUser(prev => prev ? { ...prev, partnerId: partner.id } : prev);
+      setCurrentInvitation(null);
+    },
+    onGameInvitation: (notification: Notification) => {
+      // Could show game invitation dialog here
+      console.log('Game invitation received:', notification);
+    },
+    onGameAccepted: (notification: Notification) => {
+      // Navigate to game room
+      console.log('Game accepted:', notification);
+    }
+  });
 
   const sendGameInvitation = async (gameType: 'truth_or_dare' | 'sync') => {
     if (!currentUser || !partner) {
@@ -66,9 +96,12 @@ export default function Dashboard() {
     }
   };
 
-  const handlePartnerInvitationResponse = async (invitationId: number, action: 'accept' | 'decline') => {
+  const handlePartnerInvitationResponse = async (action: 'accept' | 'decline') => {
+    if (!currentInvitation) return;
+    
+    setIsRespondingToInvitation(true);
     try {
-      const response = await fetch(`/api/partner-invitations/${invitationId}/respond`, {
+      const response = await fetch(`/api/partner-invitations/${currentInvitation.invitationId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -76,18 +109,6 @@ export default function Dashboard() {
 
       if (response.ok) {
         if (action === 'accept') {
-          // Update current user with partner
-          const updatedUserResponse = await fetch(`/api/users/${currentUser?.id}`);
-          if (updatedUserResponse.ok) {
-            const updatedUser = await updatedUserResponse.json();
-            setCurrentUser(updatedUser);
-            
-            // Set partner
-            if (pendingPartnerInvitation) {
-              setPartner(pendingPartnerInvitation.user);
-            }
-          }
-          
           toast({
             title: "Приглашение принято!",
             description: "Теперь вы партнёры и можете играть вместе",
@@ -99,8 +120,7 @@ export default function Dashboard() {
           });
         }
         
-        // Clear pending invitation
-        setPendingPartnerInvitation(null);
+        setCurrentInvitation(null);
       } else {
         const error = await response.json();
         toast({
@@ -115,6 +135,8 @@ export default function Dashboard() {
         description: "Проблема с подключением к серверу",
         variant: "destructive"
       });
+    } finally {
+      setIsRespondingToInvitation(false);
     }
   };
 
@@ -295,14 +317,48 @@ export default function Dashboard() {
                       </div>
                       <div className="flex gap-3">
                         <Button 
-                          onClick={() => handlePartnerInvitationResponse(pendingPartnerInvitation.invitationId, 'accept')}
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/partner-invitations/${pendingPartnerInvitation.invitationId}/respond`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'accept' })
+                              });
+                              if (response.ok) {
+                                setPendingPartnerInvitation(null);
+                                toast({
+                                  title: "Приглашение принято!",
+                                  description: "Теперь вы партнёры и можете играть вместе",
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error accepting invitation:', error);
+                            }
+                          }}
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                         >
                           <Heart className="h-4 w-4 mr-2" />
                           Принять
                         </Button>
                         <Button 
-                          onClick={() => handlePartnerInvitationResponse(pendingPartnerInvitation.invitationId, 'decline')}
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/partner-invitations/${pendingPartnerInvitation.invitationId}/respond`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'decline' })
+                              });
+                              if (response.ok) {
+                                setPendingPartnerInvitation(null);
+                                toast({
+                                  title: "Приглашение отклонено",
+                                  description: "Приглашение было отклонено",
+                                });
+                              }
+                            } catch (error) {
+                              console.error('Error declining invitation:', error);
+                            }
+                          }}
                           variant="outline" 
                           className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
                         >
@@ -469,7 +525,45 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Connection Status */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="fixed bottom-4 left-4 z-50"
+        >
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium ${
+            isConnected 
+              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+              : 'bg-red-500/20 text-red-400 border border-red-500/30'
+          }`}>
+            {isConnected ? (
+              <>
+                <Wifi className="h-4 w-4" />
+                Онлайн
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4" />
+                Оффлайн
+              </>
+            )}
+          </div>
+        </motion.div>
       </div>
+
+      {/* Partner Invitation Dialog */}
+      {currentInvitation && (
+        <PartnerInvitationDialog
+          isOpen={true}
+          fromUser={currentInvitation.fromUser}
+          invitationId={currentInvitation.invitationId}
+          onAccept={() => handlePartnerInvitationResponse('accept')}
+          onDecline={() => handlePartnerInvitationResponse('decline')}
+          isLoading={isRespondingToInvitation}
+        />
+      )}
     </div>
   );
 }

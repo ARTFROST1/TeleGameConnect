@@ -1,93 +1,215 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { useGame } from '@/contexts/GameContext';
+import { useToast } from '@/hooks/use-toast';
+import { User as UserType, Notification } from '@shared/schema';
 
-interface UseWebSocketProps {
-  userId?: number;
-  roomId?: number;
-  onMessage?: (message: any) => void;
+interface WebSocketMessage {
+  type: string;
+  [key: string]: any;
 }
 
-export function useWebSocket({ userId, roomId, onMessage }: UseWebSocketProps) {
+interface UseWebSocketProps {
+  roomId?: number;
+  onPartnerInvitationReceived?: (notification: Notification) => void;
+  onPartnerUpdate?: (partner: UserType) => void;
+  onGameInvitation?: (notification: Notification) => void;
+  onGameAccepted?: (notification: Notification) => void;
+}
+
+export function useWebSocket({
+  roomId,
+  onPartnerInvitationReceived,
+  onPartnerUpdate,
+  onGameInvitation,
+  onGameAccepted
+}: UseWebSocketProps = {}) {
+  const { currentUser } = useGame();
+  const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [connectionId, setConnectionId] = useState<string | null>(null);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (!currentUser) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setIsConnected(true);
-      setReconnectAttempts(0);
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
       
-      // Join room if userId and roomId are provided
-      if (userId && roomId) {
-        ws.send(JSON.stringify({
-          type: 'join',
-          userId,
-          roomId
-        }));
-      }
-    };
+      wsRef.current = new WebSocket(wsUrl);
 
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        onMessage?.(message);
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    };
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected');
+        setIsConnected(true);
+        
+        // Join room or user session
+        if (roomId) {
+          wsRef.current?.send(JSON.stringify({
+            type: 'join',
+            userId: currentUser.id,
+            roomId: roomId
+          }));
+        } else {
+          // Join user session for notifications
+          wsRef.current?.send(JSON.stringify({
+            type: 'join_user_session',
+            userId: currentUser.id
+          }));
+        }
+      };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      wsRef.current = null;
-      
-      // Attempt to reconnect with exponential backoff
-      if (reconnectAttempts < 5) {
-        const delay = Math.pow(2, reconnectAttempts) * 1000;
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('WebSocket message received:', message);
+
+          switch (message.type) {
+            case 'notification':
+              handleNotification(message.notification);
+              break;
+            case 'game_start':
+              toast({
+                title: "Игра началась!",
+                description: "Оба игрока подключены. Удачи!",
+              });
+              break;
+            case 'turn_changed':
+              // Handle turn changes in game
+              break;
+            case 'partner_answered':
+              toast({
+                title: "Партнёр ответил",
+                description: "Ваш партнёр дал ответ на вопрос",
+              });
+              break;
+            case 'sync_result':
+              // Handle sync game results
+              break;
+            default:
+              console.log('Unknown message type:', message.type);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      wsRef.current.onclose = () => {
+        console.log('WebSocket disconnected');
+        setIsConnected(false);
+        setConnectionId(null);
+        
+        // Attempt to reconnect after 3 seconds
         setTimeout(() => {
-          setReconnectAttempts(prev => prev + 1);
-          connect();
-        }, delay);
-      }
-    };
+          if (currentUser) {
+            connect();
+          }
+        }, 3000);
+      };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  }, [userId, roomId, onMessage, reconnectAttempts]);
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
 
-  const sendMessage = useCallback((message: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+    }
+  }, [currentUser, roomId, toast]);
+
+  const handleNotification = useCallback((notification: Notification) => {
+    console.log('Processing notification:', notification);
+    
+    switch (notification.type) {
+      case 'partner_invitation_received':
+        if (onPartnerInvitationReceived) {
+          onPartnerInvitationReceived(notification);
+        }
+        toast({
+          title: "Новое приглашение!",
+          description: `${notification.fromUser?.username} приглашает вас стать партнёрами`,
+        });
+        break;
+        
+      case 'partner_update':
+        if (onPartnerUpdate && notification.partner) {
+          onPartnerUpdate(notification.partner);
+        }
+        toast({
+          title: "Партнёр найден!",
+          description: `Теперь вы партнёры с ${notification.partner?.username}`,
+        });
+        break;
+        
+      case 'partner_declined':
+        toast({
+          title: "Приглашение отклонено",
+          description: `${notification.fromUser?.username} отклонил ваше приглашение`,
+          variant: "destructive",
+        });
+        break;
+        
+      case 'game_invitation':
+        if (onGameInvitation) {
+          onGameInvitation(notification);
+        }
+        toast({
+          title: "Приглашение в игру!",
+          description: `${notification.fromUser?.username} приглашает вас в ${notification.gameType === 'truth_or_dare' ? 'Правда или Действие' : 'Синхронизация'}`,
+        });
+        break;
+        
+      case 'game_accepted':
+        if (onGameAccepted) {
+          onGameAccepted(notification);
+        }
+        toast({
+          title: "Игра принята!",
+          description: `${notification.fromUser?.username} принял ваше приглашение в игру`,
+        });
+        break;
+        
+      case 'game_declined':
+        toast({
+          title: "Игра отклонена",
+          description: `${notification.fromUser?.username} отклонил ваше приглашение в игру`,
+          variant: "destructive",
+        });
+        break;
+    }
+  }, [onPartnerInvitationReceived, onPartnerUpdate, onGameInvitation, onGameAccepted, toast]);
+
+  const sendMessage = useCallback((message: WebSocketMessage) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket not connected, cannot send message:', message);
     }
   }, []);
 
   const disconnect = useCallback(() => {
-    wsRef.current?.close();
-    wsRef.current = null;
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
     setIsConnected(false);
+    setConnectionId(null);
   }, []);
 
+  // Connect when user is available
   useEffect(() => {
-    if (userId && roomId) {
+    if (currentUser) {
       connect();
     }
 
     return () => {
       disconnect();
     };
-  }, [userId, roomId, connect, disconnect]);
+  }, [currentUser, connect, disconnect]);
 
   return {
     isConnected,
     sendMessage,
-    connect,
-    disconnect
+    disconnect,
+    connectionId
   };
 }

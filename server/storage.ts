@@ -1,4 +1,6 @@
 import { users, gameRooms, gameAnswers, partnerInvitations, gameInvitations, type User, type InsertUser, type GameRoom, type InsertGameRoom, type GameAnswer, type InsertGameAnswer, type PartnerInvitation, type InsertPartnerInvitation, type GameInvitation, type InsertGameInvitation } from "@shared/schema";
+import { db } from "./db";
+import { eq, like, and, or, lt, gt, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -285,18 +287,241 @@ export class MemStorage implements IStorage {
 
   async expireOldGameInvitations(): Promise<void> {
     const now = new Date();
-    const expiredIds: number[] = [];
+    const expiredInvitations = Array.from(this.gameInvitations.entries())
+      .filter(([, invitation]) => 
+        invitation.expiresAt && 
+        invitation.expiresAt <= now && 
+        invitation.status === "pending"
+      );
     
-    for (const [id, invitation] of this.gameInvitations.entries()) {
-      if (invitation.expiresAt && invitation.expiresAt <= now && invitation.status === "pending") {
-        expiredIds.push(id);
-      }
-    }
-    
-    for (const id of expiredIds) {
+    for (const [id] of expiredInvitations) {
       this.updateGameInvitation(id, { status: "expired" });
     }
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByTelegramId(telegramId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.telegramId, telegramId));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        partnerId: null,
+        gamesPlayed: 0,
+        syncScore: 0
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async findUsersByPartialUsername(username: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(like(users.username, `%${username}%`));
+  }
+
+  async createGameRoom(insertGameRoom: InsertGameRoom): Promise<GameRoom> {
+    const [gameRoom] = await db
+      .insert(gameRooms)
+      .values(insertGameRoom)
+      .returning();
+    return gameRoom;
+  }
+
+  async getGameRoom(id: number): Promise<GameRoom | undefined> {
+    const [gameRoom] = await db.select().from(gameRooms).where(eq(gameRooms.id, id));
+    return gameRoom || undefined;
+  }
+
+  async updateGameRoom(id: number, updates: Partial<GameRoom>): Promise<GameRoom | undefined> {
+    const [gameRoom] = await db
+      .update(gameRooms)
+      .set(updates)
+      .where(eq(gameRooms.id, id))
+      .returning();
+    return gameRoom || undefined;
+  }
+
+  async getActiveGameRoomForUser(userId: number): Promise<GameRoom | undefined> {
+    const [gameRoom] = await db
+      .select()
+      .from(gameRooms)
+      .where(
+        and(
+          or(eq(gameRooms.player1Id, userId), eq(gameRooms.player2Id, userId)),
+          eq(gameRooms.status, "active")
+        )
+      );
+    return gameRoom || undefined;
+  }
+
+  async createGameAnswer(insertGameAnswer: InsertGameAnswer): Promise<GameAnswer> {
+    const [gameAnswer] = await db
+      .insert(gameAnswers)
+      .values(insertGameAnswer)
+      .returning();
+    return gameAnswer;
+  }
+
+  async getGameAnswers(roomId: number): Promise<GameAnswer[]> {
+    return await db
+      .select()
+      .from(gameAnswers)
+      .where(eq(gameAnswers.roomId, roomId));
+  }
+
+  async getGameAnswer(roomId: number, playerId: number, questionId: string): Promise<GameAnswer | undefined> {
+    const [gameAnswer] = await db
+      .select()
+      .from(gameAnswers)
+      .where(
+        and(
+          eq(gameAnswers.roomId, roomId),
+          eq(gameAnswers.playerId, playerId),
+          eq(gameAnswers.questionId, questionId)
+        )
+      );
+    return gameAnswer || undefined;
+  }
+
+  async createPartnerInvitation(insertInvitation: InsertPartnerInvitation): Promise<PartnerInvitation> {
+    const [invitation] = await db
+      .insert(partnerInvitations)
+      .values(insertInvitation)
+      .returning();
+    return invitation;
+  }
+
+  async getPartnerInvitation(id: number): Promise<PartnerInvitation | undefined> {
+    const [invitation] = await db.select().from(partnerInvitations).where(eq(partnerInvitations.id, id));
+    return invitation || undefined;
+  }
+
+  async getUserPartnerInvitations(userId: number): Promise<PartnerInvitation[]> {
+    return await db
+      .select()
+      .from(partnerInvitations)
+      .where(
+        and(
+          eq(partnerInvitations.toUserId, userId),
+          eq(partnerInvitations.status, "pending")
+        )
+      );
+  }
+
+  async getSentPartnerInvitations(userId: number): Promise<PartnerInvitation[]> {
+    return await db
+      .select()
+      .from(partnerInvitations)
+      .where(
+        and(
+          eq(partnerInvitations.fromUserId, userId),
+          eq(partnerInvitations.status, "pending")
+        )
+      );
+  }
+
+  async updatePartnerInvitation(id: number, updates: Partial<PartnerInvitation>): Promise<PartnerInvitation | undefined> {
+    const [invitation] = await db
+      .update(partnerInvitations)
+      .set({
+        ...updates,
+        respondedAt: updates.status && updates.status !== "pending" ? new Date() : undefined
+      })
+      .where(eq(partnerInvitations.id, id))
+      .returning();
+    return invitation || undefined;
+  }
+
+  async deletePartnerInvitation(id: number): Promise<boolean> {
+    const result = await db.delete(partnerInvitations).where(eq(partnerInvitations.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async createGameInvitation(insertInvitation: InsertGameInvitation): Promise<GameInvitation> {
+    const [invitation] = await db
+      .insert(gameInvitations)
+      .values({
+        ...insertInvitation,
+        expiresAt: insertInvitation.expiresAt || new Date(Date.now() + 5 * 60 * 1000) // 5 minutes default
+      })
+      .returning();
+    return invitation;
+  }
+
+  async getGameInvitation(id: number): Promise<GameInvitation | undefined> {
+    const [invitation] = await db.select().from(gameInvitations).where(eq(gameInvitations.id, id));
+    return invitation || undefined;
+  }
+
+  async getUserGameInvitations(userId: number): Promise<GameInvitation[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(gameInvitations)
+      .where(
+        and(
+          eq(gameInvitations.toUserId, userId),
+          eq(gameInvitations.status, "pending"),
+          or(isNull(gameInvitations.expiresAt), gt(gameInvitations.expiresAt, now))
+        )
+      );
+  }
+
+  async updateGameInvitation(id: number, updates: Partial<GameInvitation>): Promise<GameInvitation | undefined> {
+    const [invitation] = await db
+      .update(gameInvitations)
+      .set({
+        ...updates,
+        respondedAt: updates.status && updates.status !== "pending" ? new Date() : undefined
+      })
+      .where(eq(gameInvitations.id, id))
+      .returning();
+    return invitation || undefined;
+  }
+
+  async deleteGameInvitation(id: number): Promise<boolean> {
+    const result = await db.delete(gameInvitations).where(eq(gameInvitations.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async expireOldGameInvitations(): Promise<void> {
+    const now = new Date();
+    await db
+      .update(gameInvitations)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(gameInvitations.status, "pending"),
+          lt(gameInvitations.expiresAt, now)
+        )
+      );
+  }
+}
+
+export const storage = new DatabaseStorage();

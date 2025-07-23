@@ -914,6 +914,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             break;
             
+          case 'join_user_session':
+            const { userId: sessionUserId } = message;
+            connectionId = generateConnectionId();
+            userId = sessionUserId;
+            
+            // Store this connection for notifications
+            clients.set(connectionId, { ws, userId: sessionUserId, connectionId });
+            addUserConnection(sessionUserId, connectionId);
+            
+            console.log(`User ${sessionUserId} connected to user session with connection ${connectionId}`);
+            break;
+            
           case 'truth_or_dare_choice':
             const { choice, roomId: todRoomId, playerId } = message;
             const todRoom = await storage.getGameRoom(todRoomId);

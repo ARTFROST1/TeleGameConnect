@@ -61,18 +61,16 @@ export default function FindPartner() {
 
     setIsAdding(partnerId);
     try {
-      const response = await fetch(`/api/users/${currentUser.id}/partner`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partnerId }),
-      });
+      // For test partner (ID: 999), use old direct method
+      if (partnerId === 999) {
+        const response = await fetch(`/api/users/${currentUser.id}/partner`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partnerId }),
+        });
 
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Handle different response types
-        if (result.id) {
-          // Direct partner addition (test partner)
+        if (response.ok) {
+          const result = await response.json();
           const partner = searchResults.find(user => user.id === partnerId);
           setCurrentUser(result);
           if (partner) {
@@ -83,21 +81,32 @@ export default function FindPartner() {
             title: "Партнёр добавлен!",
             description: "Теперь вы можете играть вместе",
           });
-        } else {
-          // Invitation sent - refresh the context to show pending state
-          window.location.reload(); // Simple way to refresh context and show pending status
+        }
+      } else {
+        // For real users, send invitation
+        const response = await fetch('/api/partner-invitations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fromUserId: currentUser.id,
+            toUserId: partnerId
+          })
+        });
+
+        if (response.ok) {
           toast({
             title: "Приглашение отправлено!",
             description: "Пользователь получит уведомление о вашем приглашении",
           });
+          navigate("/dashboard");
+        } else {
+          const error = await response.json();
+          toast({
+            title: "Ошибка",
+            description: error.message || "Не удалось отправить приглашение",
+            variant: "destructive",
+          });
         }
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Ошибка",
-          description: error.message || "Не удалось добавить партнёра",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       toast({
