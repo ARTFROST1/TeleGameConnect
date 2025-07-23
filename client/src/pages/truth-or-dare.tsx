@@ -66,8 +66,6 @@ export default function TruthOrDare() {
   // WebSocket for real-time game updates
   const { sendMessage } = useWebSocket({
     roomId: parseInt(roomId || '0'),
-    onGameInvitation: () => {},
-    onGameAccepted: () => {},
   });
 
   // Load game room data

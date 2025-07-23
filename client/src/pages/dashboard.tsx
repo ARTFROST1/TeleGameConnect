@@ -44,7 +44,9 @@ export default function Dashboard() {
     },
     onPartnerUpdate: (partner: UserType) => {
       setPartner(partner);
-      setCurrentUser((prev: UserType | null) => prev ? { ...prev, partnerId: partner.id } : null);
+      if (currentUser) {
+        setCurrentUser({ ...currentUser, partnerId: partner.id });
+      }
       setCurrentInvitation(null);
     },
     onGameInvitation: (notification: Notification) => {
@@ -57,11 +59,7 @@ export default function Dashboard() {
       }
     },
     onGameAccepted: (notification: Notification) => {
-      toast({
-        title: "Игра принята!",
-        description: `${notification.fromUser?.username} принял ваше приглашение`,
-      });
-      // Navigate to game room
+      // Navigate to game room immediately without toast
       if (notification.roomId) {
         navigate(`/game/${notification.roomId}`);
       }
@@ -91,10 +89,7 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        toast({
-          title: "Приглашение отправлено!",
-          description: `${partner.username} получит приглашение в игру`,
-        });
+        // Silent success, no toast needed
       } else {
         const error = await response.json();
         toast({
@@ -171,17 +166,8 @@ export default function Dashboard() {
         const result = await response.json();
         
         if (action === 'accept' && result.roomId) {
-          toast({
-            title: "Игра начинается!",
-            description: "Переходим в игровую комнату...",
-          });
-          // Navigate to game room
+          // Navigate to game room immediately
           navigate(`/game/${result.roomId}`);
-        } else {
-          toast({
-            title: action === 'accept' ? "Игра принята!" : "Игра отклонена",
-            description: action === 'accept' ? "Игра скоро начнётся" : "Приглашение было отклонено",
-          });
         }
         
         setGameInvitation(null);

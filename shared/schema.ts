@@ -145,5 +145,6 @@ export type Notification = {
   partner?: User;
   gameType?: string;
   invitationId?: number;
+  roomId?: number;
   createdAt: Date;
 };

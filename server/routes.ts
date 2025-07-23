@@ -764,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await storage.updateGameInvitation(invitationId, { status, roomId: gameRoom.id });
         
-        // Notify both players about the accepted game
+        // Notify both players about the accepted game with room ID
         const toUser = await storage.getUser(invitation.toUserId);
         if (toUser) {
           sendNotification(invitation.fromUserId, {
@@ -773,9 +773,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
             gameType: invitation.gameType,
             invitationId,
+            roomId: gameRoom.id,
             createdAt: new Date()
           });
         }
+
+        // Send game start signal to both players in the room
+        const gameStartMessage = {
+          type: 'game_start',
+          roomId: gameRoom.id,
+          gameType: invitation.gameType,
+          players: {
+            player1: await storage.getUser(gameRoom.player1Id),
+            player2: await storage.getUser(gameRoom.player2Id)
+          }
+        };
+
+        // Send to both players via WebSocket
+        const connections = roomConnections.get(gameRoom.id);
+        if (connections) {
+          connections.forEach(ws => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify(gameStartMessage));
+            }
+          });
+        }
+
+        // Also send to user sessions in case they're not in the room yet
+        [gameRoom.player1Id, gameRoom.player2Id].forEach(playerId => {
+          const userConnections = userConnections.get(playerId);
+          if (userConnections) {
+            userConnections.forEach(ws => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(gameStartMessage));
+              }
+            });
+          }
+        });
         
         res.json({ success: true, roomId: gameRoom.id });
       } else {

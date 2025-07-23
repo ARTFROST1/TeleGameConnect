@@ -86,6 +86,13 @@ export function useWebSocket({
             case 'sync_result':
               // Handle sync game results
               break;
+            case 'game_start':
+              // Handle game start signal - navigate to game room
+              console.log('Game starting:', message);
+              if (message.roomId && window.location.pathname.includes('/dashboard')) {
+                window.location.href = `/game/${message.roomId}`;
+              }
+              break;
             default:
               console.log('Unknown message type:', message.type);
           }
@@ -153,28 +160,16 @@ export function useWebSocket({
         if (onGameInvitation) {
           onGameInvitation(notification);
         }
-        toast({
-          title: "Приглашение в игру!",
-          description: `${notification.fromUser?.username} приглашает вас в ${notification.gameType === 'truth_or_dare' ? 'Правда или Действие' : 'Синхронизация'}`,
-        });
         break;
         
       case 'game_accepted':
         if (onGameAccepted) {
           onGameAccepted(notification);
         }
-        toast({
-          title: "Игра принята!",
-          description: `${notification.fromUser?.username} принял ваше приглашение в игру`,
-        });
         break;
         
       case 'game_declined':
-        toast({
-          title: "Игра отклонена",
-          description: `${notification.fromUser?.username} отклонил ваше приглашение в игру`,
-          variant: "destructive",
-        });
+        // Silent handling, no toast
         break;
     }
   }, [onPartnerInvitationReceived, onPartnerUpdate, onGameInvitation, onGameAccepted, toast]);
@@ -209,8 +204,6 @@ export function useWebSocket({
 
   return {
     isConnected,
-    sendMessage,
-    disconnect,
-    connectionId
+    sendMessage
   };
 }
