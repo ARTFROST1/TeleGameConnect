@@ -659,7 +659,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Game invitation endpoints
   app.post("/api/game-invitations", async (req, res) => {
     try {
-      const invitationData = insertGameInvitationSchema.parse(req.body);
+      const body = req.body;
+      // Convert expiresAt from ISO string to Date if present
+      if (body.expiresAt && typeof body.expiresAt === 'string') {
+        body.expiresAt = new Date(body.expiresAt);
+      }
+      const invitationData = insertGameInvitationSchema.parse(body);
       
       // Check if users are partners
       const fromUser = await storage.getUser(invitationData.fromUserId);

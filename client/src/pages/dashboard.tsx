@@ -11,7 +11,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { PartnerInvitationDialog } from "@/components/PartnerInvitationDialog";
+import { GameInvitationDialog } from "@/components/GameInvitationDialog";
 import { User as UserType, Notification } from "@shared/schema";
+import { useLocation } from "wouter";
 
 const avatarIcons = [User, Star, Heart, Flame];
 const avatarGradients = [
@@ -24,8 +26,11 @@ const avatarGradients = [
 export default function Dashboard() {
   const { currentUser, partner, pendingPartnerInvitation, setPendingPartnerInvitation, setCurrentUser, setPartner } = useGame();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [currentInvitation, setCurrentInvitation] = useState<{fromUser: UserType, invitationId: number} | null>(null);
   const [isRespondingToInvitation, setIsRespondingToInvitation] = useState(false);
+  const [gameInvitation, setGameInvitation] = useState<{fromUser: UserType, gameType: 'truth_or_dare' | 'sync', invitationId: number} | null>(null);
+  const [isRespondingToGameInvitation, setIsRespondingToGameInvitation] = useState(false);
 
   // WebSocket connection for real-time notifications
   const { isConnected } = useWebSocket({
@@ -39,16 +44,24 @@ export default function Dashboard() {
     },
     onPartnerUpdate: (partner: UserType) => {
       setPartner(partner);
-      setCurrentUser(prev => prev ? { ...prev, partnerId: partner.id } : prev);
+      setCurrentUser(prev => prev ? { ...prev, partnerId: partner.id } : null);
       setCurrentInvitation(null);
     },
     onGameInvitation: (notification: Notification) => {
-      // Could show game invitation dialog here
-      console.log('Game invitation received:', notification);
+      if (notification.fromUser && notification.gameType && notification.invitationId) {
+        setGameInvitation({
+          fromUser: notification.fromUser as UserType,
+          gameType: notification.gameType as 'truth_or_dare' | 'sync',
+          invitationId: notification.invitationId
+        });
+      }
     },
     onGameAccepted: (notification: Notification) => {
-      // Navigate to game room
-      console.log('Game accepted:', notification);
+      toast({
+        title: "Игра принята!",
+        description: `${notification.fromUser?.username} принял ваше приглашение`,
+      });
+      // Could redirect to game room here when created
     }
   });
 
@@ -70,7 +83,7 @@ export default function Dashboard() {
           fromUserId: currentUser.id,
           toUserId: partner.id,
           gameType,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes
         })
       });
 
@@ -137,6 +150,54 @@ export default function Dashboard() {
       });
     } finally {
       setIsRespondingToInvitation(false);
+    }
+  };
+
+  const handleGameInvitationResponse = async (action: 'accept' | 'decline') => {
+    if (!gameInvitation) return;
+    
+    setIsRespondingToGameInvitation(true);
+    try {
+      const response = await fetch(`/api/game-invitations/${gameInvitation.invitationId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (action === 'accept' && result.roomId) {
+          toast({
+            title: "Игра начинается!",
+            description: "Переходим в игровую комнату...",
+          });
+          // Navigate to game room
+          navigate(`/game/${result.roomId}`);
+        } else {
+          toast({
+            title: action === 'accept' ? "Игра принята!" : "Игра отклонена",
+            description: action === 'accept' ? "Игра скоро начнётся" : "Приглашение было отклонено",
+          });
+        }
+        
+        setGameInvitation(null);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Ошибка",
+          description: error.message || "Не удалось ответить на приглашение",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Проблема с подключением к серверу",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRespondingToGameInvitation(false);
     }
   };
 
@@ -562,6 +623,19 @@ export default function Dashboard() {
           onAccept={() => handlePartnerInvitationResponse('accept')}
           onDecline={() => handlePartnerInvitationResponse('decline')}
           isLoading={isRespondingToInvitation}
+        />
+      )}
+
+      {/* Game Invitation Dialog */}
+      {gameInvitation && (
+        <GameInvitationDialog
+          isOpen={true}
+          fromUser={gameInvitation.fromUser}
+          gameType={gameInvitation.gameType}
+          invitationId={gameInvitation.invitationId}
+          onAccept={() => handleGameInvitationResponse('accept')}
+          onDecline={() => handleGameInvitationResponse('decline')}
+          isLoading={isRespondingToGameInvitation}
         />
       )}
     </div>

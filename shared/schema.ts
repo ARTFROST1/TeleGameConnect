@@ -90,7 +90,8 @@ export const insertGameInvitationSchema = createInsertSchema(gameInvitations).pi
   fromUserId: true,
   toUserId: true,
   gameType: true,
-  expiresAt: true,
+}).extend({
+  expiresAt: z.date().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
