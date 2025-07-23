@@ -16,6 +16,7 @@ export interface IStorage {
   getGameRoom(id: number): Promise<GameRoom | undefined>;
   updateGameRoom(id: number, updates: Partial<GameRoom>): Promise<GameRoom | undefined>;
   getActiveGameRoomForUser(userId: number): Promise<GameRoom | undefined>;
+  getGameHistory(userId: number): Promise<any[]>;
 
   // Game answer operations
   createGameAnswer(answer: InsertGameAnswer): Promise<GameAnswer>;
@@ -163,6 +164,24 @@ export class MemStorage implements IStorage {
     return rooms.find(room => 
       (room.player1Id === userId || room.player2Id === userId) && room.status === 'active'
     );
+  }
+
+  async getGameHistory(userId: number): Promise<any[]> {
+    const userGames = Array.from(this.gameRooms.values())
+      .filter(room => (room.player1Id === userId || room.player2Id === userId) && room.status === "finished")
+      .map(room => ({
+        id: room.id,
+        gameType: room.gameType,
+        partnerUsername: room.player1Id === userId ? "TestPartner" : "Игрок",
+        playerScore: room.player1Id === userId ? room.player1Score || 0 : room.player2Score || 0,
+        partnerScore: room.player1Id === userId ? room.player2Score || 0 : room.player1Score || 0,
+        duration: Math.floor((new Date().getTime() - room.createdAt.getTime()) / 1000),
+        completedAt: room.createdAt.toISOString(),
+        totalQuestions: 10 // Mock value
+      }))
+      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+    
+    return userGames;
   }
 
 
@@ -522,6 +541,40 @@ export class DatabaseStorage implements IStorage {
           lt(gameInvitations.expiresAt, now)
         )
       );
+  }
+
+  async getGameHistory(userId: number): Promise<any[]> {
+    const userGames = await db
+      .select({
+        id: gameRooms.id,
+        gameType: gameRooms.gameType,
+        player1Id: gameRooms.player1Id,
+        player2Id: gameRooms.player2Id,
+        player1Score: gameRooms.player1Score,
+        player2Score: gameRooms.player2Score,
+        createdAt: gameRooms.createdAt,
+      })
+      .from(gameRooms)
+      .where(
+        and(
+          or(
+            eq(gameRooms.player1Id, userId),
+            eq(gameRooms.player2Id, userId)
+          ),
+          eq(gameRooms.status, 'finished')
+        )
+      );
+
+    return userGames.map(room => ({
+      id: room.id,
+      gameType: room.gameType,
+      partnerUsername: room.player1Id === userId ? "Партнёр" : "Игрок",
+      playerScore: room.player1Id === userId ? room.player1Score || 0 : room.player2Score || 0,
+      partnerScore: room.player1Id === userId ? room.player2Score || 0 : room.player1Score || 0,
+      duration: Math.floor((new Date().getTime() - room.createdAt.getTime()) / 1000),
+      completedAt: room.createdAt.toISOString(),
+      totalQuestions: 10
+    })).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
   }
 }
 

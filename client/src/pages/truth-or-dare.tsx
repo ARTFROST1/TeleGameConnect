@@ -67,11 +67,9 @@ export default function TruthOrDare() {
 
         switch (message.type) {
           case 'question_assigned':
-            // Partner selected a question
-            if (message.currentPlayer !== currentUser?.id) {
-              setCurrentQuestion(message.question);
-              setSelectedChoice(message.choice);
-            }
+            // Both players see the same question
+            setCurrentQuestion(message.question);
+            setSelectedChoice(message.choice);
             break;
             
           case 'turn_changed':
@@ -81,19 +79,6 @@ export default function TruthOrDare() {
             setSelectedChoice(null);
             setCurrentQuestion(null);
             setTimeLeft(0);
-            
-            if (message.currentPlayer === currentUser?.id) {
-              toast({
-                title: "Ваш ход!",
-                description: "Выберите правду или действие",
-              });
-            } else {
-              const playerName = message.currentPlayer === 999 ? "TestPartner" : "Партнёр";
-              toast({
-                title: `Ход ${playerName}`,
-                description: "Ожидаем выбор...",
-              });
-            }
             break;
         }
       } catch (error) {
@@ -190,7 +175,7 @@ export default function TruthOrDare() {
     setCurrentQuestion(randomQuestion);
     setTimeLeft(120); // 2 minutes to complete
     
-    // Send choice to partner via WebSocket
+    // Send choice to all players via WebSocket
     sendMessage({
       type: 'truth_or_dare_choice',
       roomId: parseInt(roomId || '0'),
@@ -266,11 +251,7 @@ export default function TruthOrDare() {
       setGameState(newGameState);
 
     } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось сохранить ответ",
-        variant: "destructive"
-      });
+      console.error('Error handling answer:', error);
     }
   };
 

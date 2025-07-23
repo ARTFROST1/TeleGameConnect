@@ -812,9 +812,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/games/history/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      // This would normally fetch from database, but for demo we'll return empty array
-      // In real implementation, you'd fetch game history from database
-      res.json([]);
+      const games = await storage.getGameHistory(userId);
+      res.json(games);
     } catch (error) {
       res.status(400).json({ message: "Invalid user ID" });
     }

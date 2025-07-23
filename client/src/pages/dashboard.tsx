@@ -92,18 +92,10 @@ export default function Dashboard() {
         // Silent success, no toast needed
       } else {
         const error = await response.json();
-        toast({
-          title: "Ошибка",
-          description: error.message || "Не удалось отправить приглашение",
-          variant: "destructive"
-        });
+        console.error('Failed to send invitation:', error.message);
       }
     } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Проблема с подключением к серверу",
-        variant: "destructive"
-      });
+      console.error('Connection error:', error);
     }
   };
 
@@ -376,10 +368,7 @@ export default function Dashboard() {
                               });
                               if (response.ok) {
                                 setPendingPartnerInvitation(null);
-                                toast({
-                                  title: "Приглашение принято!",
-                                  description: "Теперь вы партнёры и можете играть вместе",
-                                });
+                                // Silent success - smoother UX without intrusive notifications
                               }
                             } catch (error) {
                               console.error('Error accepting invitation:', error);
@@ -400,10 +389,7 @@ export default function Dashboard() {
                               });
                               if (response.ok) {
                                 setPendingPartnerInvitation(null);
-                                toast({
-                                  title: "Приглашение отклонено",
-                                  description: "Приглашение было отклонено",
-                                });
+                                // Silent rejection - no need to notify about negative actions
                               }
                             } catch (error) {
                               console.error('Error declining invitation:', error);
@@ -458,65 +444,39 @@ export default function Dashboard() {
               <CardDescription className="text-gray-300">Выберите игру для начала</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <motion.div 
                   whileHover={{ scale: 1.02, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => partner ? sendGameInvitation('truth_or_dare') : toast({ title: "Нужен партнёр", description: "Найдите партнёра для игры", variant: "destructive" })}
-                  className="glass-card p-6 cursor-pointer group relative overflow-hidden"
+                  onClick={() => partner ? sendGameInvitation('truth_or_dare') : null}
+                  className={`glass-card p-8 cursor-pointer group relative overflow-hidden ${!partner ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <div className="absolute inset-0 bg-gradient-primary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                  <div className="relative flex items-center gap-4">
+                  <div className="relative flex items-center gap-6">
                     <motion.div 
                       whileHover={{ rotate: 15, scale: 1.1 }}
-                      className="p-4 rounded-2xl bg-gradient-primary glow-effect"
+                      className="p-6 rounded-3xl bg-gradient-to-r from-red-500 to-pink-500 glow-effect"
                     >
-                      <Zap className="h-6 w-6 text-white" />
+                      <MessageCircleQuestion className="h-8 w-8 text-white" />
                     </motion.div>
                     <div className="flex-1">
-                      <h4 className="font-bold text-xl mb-2 text-gradient">Правда или Действие</h4>
-                      <p className="text-sm text-gray-300">
-                        {partner ? "Пригласить партнёра в игру" : "Найдите партнёра для игры"}
+                      <h4 className="font-bold text-2xl mb-3 text-gradient">Правда или Действие</h4>
+                      <p className="text-gray-300 text-lg mb-2">
+                        {partner ? "Откровенные вопросы и забавные задания для пар" : "Найдите партнёра для игры"}
                       </p>
+                      {partner && (
+                        <p className="text-sm text-primary">
+                          Нажмите, чтобы пригласить {partner.username} в игру
+                        </p>
+                      )}
                     </div>
                     {partner ? (
                       <div className="flex items-center text-primary">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span className="text-sm font-medium">Пригласить</span>
+                        <Users className="h-5 w-5 mr-2" />
+                        <span className="font-medium">Пригласить</span>
                       </div>
                     ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400 opacity-50" />
-                    )}
-                  </div>
-                </motion.div>
-                
-                <motion.div 
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => partner ? sendGameInvitation('sync') : toast({ title: "Нужен партнёр", description: "Найдите партнёра для игры", variant: "destructive" })}
-                  className="glass-card p-6 cursor-pointer group relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-secondary opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                  <div className="relative flex items-center gap-4">
-                    <motion.div 
-                      whileHover={{ rotate: -15, scale: 1.1 }}
-                      className="p-4 rounded-2xl bg-gradient-secondary glow-effect"
-                    >
-                      <Heart className="h-6 w-6 text-white" />
-                    </motion.div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-xl mb-2 text-gradient">Синхронизация</h4>
-                      <p className="text-sm text-gray-300">
-                        {partner ? "Пригласить партнёра в игру" : "Найдите партнёра для игры"}
-                      </p>
-                    </div>
-                    {partner ? (
-                      <div className="flex items-center text-primary">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span className="text-sm font-medium">Пригласить</span>
-                      </div>
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400 opacity-50" />
+                      <ChevronRight className="h-6 w-6 text-gray-400 opacity-50" />
                     )}
                   </div>
                 </motion.div>
