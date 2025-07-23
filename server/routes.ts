@@ -907,6 +907,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               currentPlayer: playerId
             });
           }
+        } else if (message.type === 'turn_changed') {
+            // Handle turn change in Truth or Dare
+            const { roomId: turnRoomId, currentPlayer: newCurrentPlayer, gameState: newGameState } = message;
+            
+            // Broadcast turn change to all players
+            broadcast(turnRoomId, {
+              type: 'turn_changed',
+              currentPlayer: newCurrentPlayer,
+              gameState: newGameState
+            });
+            
+            // Auto-play for test partner (ID: 999)
+            if (newCurrentPlayer === 999) {
+              setTimeout(async () => {
+                await handleTestPartnerTurn(turnRoomId);
+              }, 1500); // 1.5 second delay
+            }
         } else if (message.type === 'turn_completed') {
             const { roomId: completeRoomId, playerId: completePlayerId, completed, nextPlayer, gameState: updatedGameState } = message;
             const completeRoom = await storage.getGameRoom(completeRoomId);

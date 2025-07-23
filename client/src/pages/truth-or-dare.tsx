@@ -1,43 +1,33 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User, Star, Heart, Flame, ArrowLeft, Clock, Trophy, CheckCircle, SkipForward, XCircle } from "lucide-react";
-import { Link, useParams, useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { useGame } from "@/contexts/GameContext";
-import { useWebSocket } from "@/hooks/useWebSocket";
-import { useToast } from "@/hooks/use-toast";
-import { GameRoom, User as UserType } from "@shared/schema";
+import { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'wouter';
+import { useGame } from '@/contexts/GameContext';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { useToast } from '@/hooks/use-toast';
+import { User as UserType, GameRoom } from '@shared/schema';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-const avatarIcons = [User, Star, Heart, Flame];
-const avatarGradients = [
-  "from-purple-500 to-pink-500",
-  "from-blue-500 to-cyan-500", 
-  "from-green-500 to-emerald-500",
-  "from-orange-500 to-red-500"
-];
+interface TruthOrDareQuestion {
+  id: string;
+  type: 'truth' | 'dare';
+  text: string;
+}
 
-const truthOrDareQuestions = [
+const truthOrDareQuestions: TruthOrDareQuestion[] = [
   // Truth questions
-  { id: "t1", type: "truth", text: "Какой самый смущающий момент в твоей жизни?" },
-  { id: "t2", type: "truth", text: "О чём ты врал родителям в детстве?" },
-  { id: "t3", type: "truth", text: "Какая твоя самая большая мечта?" },
-  { id: "t4", type: "truth", text: "Что ты никому не рассказывал?" },
-  { id: "t5", type: "truth", text: "За кого ты тайно переживал в школе?" },
-  { id: "t6", type: "truth", text: "Какой самый странный сон тебе снился?" },
-  { id: "t7", type: "truth", text: "Что бы ты хотел изменить в себе?" },
-  { id: "t8", type: "truth", text: "Кому ты завидуешь и почему?" },
+  { id: 'truth1', type: 'truth', text: 'Расскажи самый неловкий момент с детства' },
+  { id: 'truth2', type: 'truth', text: 'О чём ты мечтаешь, но боишься рассказать?' },
+  { id: 'truth3', type: 'truth', text: 'Какая твоя самая большая слабость?' },
+  { id: 'truth4', type: 'truth', text: 'Что бы ты изменил в себе, если бы мог?' },
+  { id: 'truth5', type: 'truth', text: 'Какой самый странный сон тебе снился?' },
   
   // Dare questions
-  { id: "d1", type: "dare", text: "Изобрази животное так, чтобы партнёр угадал" },
-  { id: "d2", type: "dare", text: "Спой песню голосом мультяшного персонажа" },
-  { id: "d3", type: "dare", text: "Сделай 10 приседаний" },
-  { id: "d4", type: "dare", text: "Расскажи комплимент партнёру на 30 секунд" },
-  { id: "d5", type: "dare", text: "Изобрази робота в течение минуты" },
-  { id: "d6", type: "dare", text: "Станцуй танец победы" },
-  { id: "d7", type: "dare", text: "Сделай смешную рожицу и держи 10 секунд" },
-  { id: "d8", type: "dare", text: "Говори только рифмами следующие 3 реплики" },
+  { id: 'dare1', type: 'dare', text: 'Сними 5-секундное видео, где ты поёшь как кот' },
+  { id: 'dare2', type: 'dare', text: 'Сделай селфи с самым смешным лицом' },
+  { id: 'dare3', type: 'dare', text: 'Расскажи стихотворение голосом робота' },
+  { id: 'dare4', type: 'dare', text: 'Покажи свой лучший танцевальный движ' },
+  { id: 'dare5', type: 'dare', text: 'Изобрази любимое животное без слов' },
 ];
 
 export default function TruthOrDare() {
@@ -47,7 +37,7 @@ export default function TruthOrDare() {
   const { toast } = useToast();
   
   const [gameRoom, setGameRoom] = useState<GameRoom | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<TruthOrDareQuestion | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [gameState, setGameState] = useState({
     currentQuestionIndex: 0,
@@ -211,7 +201,7 @@ export default function TruthOrDare() {
   };
 
   const completeTask = async (completed: boolean) => {
-    if (!gameRoom || !currentUser) return;
+    if (!gameRoom || !currentUser || !currentQuestion) return;
     
     try {
       // Save answer
@@ -221,94 +211,64 @@ export default function TruthOrDare() {
         body: JSON.stringify({
           roomId: parseInt(roomId || '0'),
           playerId: currentUser.id,
-          questionId: currentQuestion?.id || '',
+          questionId: currentQuestion.id,
           answer: completed ? 'completed' : 'skipped',
           completed
         })
       });
-      
-      // Update scores
-      const newScore = completed ? (currentUser.id === gameRoom.player1Id ? gameState.player1Score + 1 : gameState.player2Score + 1) : 0;
-      const updatedGameState = {
+
+      // Update game state
+      const newGameState = {
         ...gameState,
-        currentQuestionIndex: gameState.currentQuestionIndex + 1,
-        player1Score: currentUser.id === gameRoom.player1Id ? newScore : gameState.player1Score,
-        player2Score: currentUser.id === gameRoom.player2Id ? newScore : gameState.player2Score,
-        turnHistory: [...gameState.turnHistory, `${currentUser.username}: ${currentQuestion?.text} - ${completed ? 'Выполнено' : 'Пропущено'}`]
+        currentQuestionIndex: gameState.currentQuestionIndex + 1
       };
       
-      // Switch turns
-      const nextPlayer = gameRoom.currentPlayer === gameRoom.player1Id ? gameRoom.player2Id : gameRoom.player1Id;
-      
-      // Update game room
+      if (completed) {
+        if (currentUser.id === gameRoom.player1Id) {
+          newGameState.player1Score += 1;
+        } else {
+          newGameState.player2Score += 1;
+        }
+      }
+
+      // Add to turn history
+      const turnHistory = (newGameState as any).turnHistory || [];
+      turnHistory.push(`${currentUser.username}: ${currentQuestion.text} - ${completed ? 'Выполнено' : 'Пропущено'}`);
+      (newGameState as any).turnHistory = turnHistory;
+
+      // Switch turn to other player
+      const nextPlayer = currentUser.id === gameRoom.player1Id ? gameRoom.player2Id : gameRoom.player1Id;
+
       await fetch(`/api/games/${roomId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPlayer: nextPlayer,
-          gameData: updatedGameState
+          gameData: newGameState
         })
       });
-      
-      // Send turn update via WebSocket
+
+      // Send turn change via WebSocket
       sendMessage({
-        type: 'turn_completed',
+        type: 'turn_changed',
         roomId: parseInt(roomId || '0'),
-        playerId: currentUser.id,
+        currentPlayer: nextPlayer,
+        gameState: newGameState,
         completed,
-        nextPlayer,
-        gameState: updatedGameState
+        playerId: currentUser.id
       });
-      
-      // Update local state
-      setGameState(updatedGameState);
-      setIsMyTurn(false);
+
+      // Reset local state
       setSelectedChoice(null);
       setCurrentQuestion(null);
       setTimeLeft(0);
-      
-      toast({
-        title: completed ? "Задание выполнено!" : "Задание пропущено",
-        description: "Ход переходит к партнёру",
-      });
-      
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось завершить ход",
-        variant: "destructive"
-      });
-    }
-  };
+      setIsMyTurn(false);
+      setGameState(newGameState);
 
-  const endGame = async () => {
-    if (!gameRoom) return;
-    
-    try {
-      await fetch(`/api/games/${roomId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'finished'
-        })
-      });
-      
-      sendMessage({
-        type: 'game_ended',
-        roomId: parseInt(roomId || '0'),
-        finalScore: gameState
-      });
-      
-      toast({
-        title: "Игра завершена!",
-        description: "Спасибо за игру!",
-      });
-      
-      navigate("/dashboard");
     } catch (error) {
       toast({
         title: "Ошибка",
-        description: "Не удалось завершить игру",
+        description: "Не удалось сохранить ответ",
         variant: "destructive"
       });
     }
@@ -316,10 +276,10 @@ export default function TruthOrDare() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Загрузка игры...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
+          <p className="text-white text-xl">Загрузка игры...</p>
         </div>
       </div>
     );
@@ -327,217 +287,182 @@ export default function TruthOrDare() {
 
   if (!gameRoom || !players.player1 || !players.player2) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground mb-4">Игра не найдена</p>
-            <Link href="/dashboard">
-              <Button>На главную</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center text-white">
+          <h2 className="text-2xl mb-4">Комната не найдена</h2>
+          <button 
+            onClick={() => navigate("/dashboard")}
+            className="bg-white text-purple-900 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Вернуться
+          </button>
+        </div>
       </div>
     );
   }
 
-  const currentPlayer = gameRoom.currentPlayer === players.player1.id ? players.player1 : players.player2;
-  const CurrentPlayerIcon = avatarIcons[parseInt(currentPlayer.avatar) % avatarIcons.length];
-
   return (
-    <div className="min-h-screen p-4">
-      <div className="container mx-auto max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6"
-        >
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="rounded-xl">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold text-gradient">Правда или Действие</h1>
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-white">Правда или Действие</h1>
+            <button 
+              onClick={() => navigate("/dashboard")}
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">Ход {gameState.currentQuestionIndex + 1}</Badge>
-            {timeLeft > 0 && (
-              <Badge variant="secondary">
-                <Clock className="h-3 w-3 mr-1" />
-                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-              </Badge>
+          
+          {/* Players */}
+          <div className="flex justify-between items-center mb-4">
+            <div className={`flex items-center space-x-3 ${isMyTurn && currentUser?.id === players.player1?.id ? 'opacity-100' : 'opacity-50'}`}>
+              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                {players.player1?.avatar || '👤'}
+              </div>
+              <div>
+                <p className="text-white font-semibold">{players.player1?.username}</p>
+                <p className="text-white/70 text-sm">Очки: {gameState.player1Score}</p>
+              </div>
+            </div>
+            
+            <div className="text-white/50 text-2xl">VS</div>
+            
+            <div className={`flex items-center space-x-3 ${isMyTurn && currentUser?.id === players.player2?.id ? 'opacity-100' : 'opacity-50'}`}>
+              <div>
+                <p className="text-white font-semibold text-right">{players.player2?.username}</p>
+                <p className="text-white/70 text-sm text-right">Очки: {gameState.player2Score}</p>
+              </div>
+              <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                {players.player2?.avatar || '👤'}
+              </div>
+            </div>
+          </div>
+          
+          {/* Current Turn Indicator */}
+          <div className="text-center">
+            {isMyTurn ? (
+              <p className="text-green-400 font-semibold">🎯 Ваш ход!</p>
+            ) : (
+              <p className="text-orange-400">⏰ Ход партнёра...</p>
             )}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Players Score */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 gap-4 mb-6"
-        >
-          {[players.player1, players.player2].map((player, index) => {
-            const PlayerIcon = avatarIcons[parseInt(player.avatar) % avatarIcons.length];
-            const score = index === 0 ? gameState.player1Score : gameState.player2Score;
-            const isCurrentPlayer = gameRoom.currentPlayer === player.id;
-            
-            return (
-              <Card key={player.id} className={`${isCurrentPlayer ? 'ring-2 ring-primary' : ''}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(player.avatar) % avatarGradients.length]} ${isCurrentPlayer ? 'scale-110 shadow-lg' : ''} transition-all`}>
-                      <PlayerIcon className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">{player.username}</p>
-                      <div className="flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-yellow-500" />
-                        <span className="text-lg font-bold">{score}</span>
-                      </div>
-                    </div>
-                    {isCurrentPlayer && (
-                      <Badge className="bg-green-500">Ходит</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </motion.div>
+        {/* Game Content */}
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
+          {!selectedChoice && isMyTurn && (
+            <div className="text-center">
+              <h2 className="text-white text-xl mb-6">Выберите категорию:</h2>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => selectChoice('truth')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                >
+                  🤔 Правда
+                </button>
+                <button
+                  onClick={() => selectChoice('dare')}
+                  className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors"
+                >
+                  🔥 Действие
+                </button>
+              </div>
+            </div>
+          )}
 
-        {/* Game Area */}
-        <AnimatePresence mode="wait">
-          {isMyTurn ? (
-            <motion.div
-              key="my-turn"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-6"
-            >
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="text-center text-gradient">Ваш ход!</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!selectedChoice ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button
-                        onClick={() => selectChoice('truth')}
-                        size="lg"
-                        className="h-24 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
-                      >
-                        <div className="text-center">
-                          <div className="text-xl font-bold mb-1">Правда</div>
-                          <div className="text-sm opacity-90">Ответь честно</div>
-                        </div>
-                      </Button>
-                      <Button
-                        onClick={() => selectChoice('dare')}
-                        size="lg"
-                        className="h-24 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
-                      >
-                        <div className="text-center">
-                          <div className="text-xl font-bold mb-1">Действие</div>
-                          <div className="text-sm opacity-90">Выполни задание</div>
-                        </div>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-6">
-                      <div className={`p-6 rounded-xl ${selectedChoice === 'truth' ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-                        <Badge className={`mb-4 ${selectedChoice === 'truth' ? 'bg-blue-500' : 'bg-red-500'}`}>
-                          {selectedChoice === 'truth' ? 'Правда' : 'Действие'}
-                        </Badge>
-                        <p className="text-lg font-medium">{currentQuestion?.text}</p>
+          {currentQuestion && (
+            <div className="text-center">
+              <div className={`inline-block px-4 py-2 rounded-full text-sm font-semibold mb-4 ${
+                selectedChoice === 'truth' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
+              }`}>
+                {selectedChoice === 'truth' ? '🤔 Правда' : '🔥 Действие'}
+              </div>
+              
+              <div className="bg-white/20 rounded-xl p-6 mb-6">
+                <p className="text-white text-lg leading-relaxed">
+                  {currentQuestion.text}
+                </p>
+              </div>
+
+              {isMyTurn && (
+                <div>
+                  {timeLeft > 0 && (
+                    <div className="mb-4">
+                      <div className="text-white/70 text-sm mb-2">
+                        Осталось времени: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                       </div>
-                      
-                      <div className="flex gap-4 justify-center">
-                        <Button
-                          onClick={() => completeTask(true)}
-                          size="lg"
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          Выполнено
-                        </Button>
-                        <Button
-                          onClick={() => completeTask(false)}
-                          size="lg"
-                          variant="outline"
-                          className="border-orange-500 text-orange-500 hover:bg-orange-500/10"
-                        >
-                          <SkipForward className="h-5 w-5 mr-2" />
-                          Пропустить
-                        </Button>
+                      <div className="w-full bg-white/20 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-yellow-400 h-2 rounded-full transition-all duration-1000"
+                          style={{ width: `${(timeLeft / 120) * 100}%` }}
+                        ></div>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="waiting"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            >
-              <Card className="glass-card">
-                <CardContent className="p-8 text-center">
-                  <motion.div
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className={`w-16 h-16 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(currentPlayer.avatar) % avatarGradients.length]} flex items-center justify-center mx-auto mb-4`}
-                  >
-                    <CurrentPlayerIcon className="h-8 w-8 text-white" />
-                  </motion.div>
-                  <h3 className="text-xl font-semibold mb-2">Ходит {currentPlayer.username}</h3>
-                  <p className="text-muted-foreground">Ожидаем выбор партнёра...</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Game History */}
-        {gameState.turnHistory.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6"
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">История ходов</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {gameState.turnHistory.slice(-5).map((turn, index) => (
-                    <p key={index} className="text-sm text-muted-foreground">{turn}</p>
-                  ))}
+                  
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      onClick={() => completeTask(true)}
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+                    >
+                      ✅ Выполнено
+                    </button>
+                    <button
+                      onClick={() => completeTask(false)}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+                    >
+                      ⏭️ Пропустить
+                    </button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+              )}
 
-        {/* End Game Button */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="mt-6 text-center"
-        >
-          <Button
-            onClick={endGame}
-            variant="outline"
-            className="border-red-500 text-red-500 hover:bg-red-500/10"
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Завершить игру
-          </Button>
-        </motion.div>
+              {!isMyTurn && currentQuestion && (
+                <div className="text-center">
+                  <p className="text-white/70 mb-4">
+                    {currentUser?.id === gameRoom.currentPlayer ? 'Ваш партнёр' : 'Партнёр'} выполняет задание...
+                  </p>
+                  <div className="animate-pulse">
+                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce"></div>
+                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="inline-block w-2 h-2 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!currentQuestion && !isMyTurn && (
+            <div className="text-center">
+              <p className="text-white text-lg mb-4">Ожидаем выбор партнёра...</p>
+              <div className="animate-pulse">
+                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce"></div>
+                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="inline-block w-3 h-3 bg-white rounded-full mx-1 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Game Stats */}
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mt-4">
+          <div className="flex justify-between items-center text-white/70 text-sm">
+            <span>Ход: {gameState.currentQuestionIndex + 1}</span>
+            <button
+              onClick={() => {
+                if (confirm('Вы уверены, что хотите завершить игру?')) {
+                  navigate('/dashboard');
+                }
+              }}
+              className="text-red-400 hover:text-red-300 transition-colors"
+            >
+              Завершить игру
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
