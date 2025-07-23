@@ -932,10 +932,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }, 1500); // 1.5 second delay
             }
         } else if (message.type === 'turn_completed') {
-            const { roomId: completeRoomId, playerId: completePlayerId, completed, nextPlayer, gameState: updatedGameState } = message;
+            const { roomId: completeRoomId, playerId: completePlayerId, completed, questionId, gameState: clientGameState } = message;
             const completeRoom = await storage.getGameRoom(completeRoomId);
             
-            if (completeRoom) {
+            console.log(`Turn completed by player ${completePlayerId} in room ${completeRoomId}, completed: ${completed}`);
+            
+            if (completeRoom && completeRoom.currentPlayer === completePlayerId) {
+              // Save the answer first
+              await storage.createGameAnswer({
+                roomId: completeRoomId,
+                playerId: completePlayerId,
+                questionId,
+                answer: completed ? 'completed' : 'skipped',
+                completed
+              });
+              
               const gameState: GameState = completeRoom.gameData as GameState || {
                 currentQuestionIndex: 0,
                 player1Score: 0,
@@ -950,22 +961,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
               
-              // Switch turn
+              gameState.currentQuestionIndex += 1;
+              
+              // Switch turn to the other player
               const nextPlayer = completeRoom.currentPlayer === completeRoom.player1Id ? 
                 completeRoom.player2Id : completeRoom.player1Id;
+              
+              console.log(`Switching turn from ${completeRoom.currentPlayer} to ${nextPlayer}`);
               
               await storage.updateGameRoom(completeRoomId, { 
                 currentPlayer: nextPlayer,
                 gameData: gameState 
               });
               
+              // Broadcast turn change to all players
               broadcast(completeRoomId, {
                 type: 'turn_changed',
                 currentPlayer: nextPlayer,
-                scores: {
-                  player1Score: gameState.player1Score,
-                  player2Score: gameState.player2Score
-                }
+                gameState: gameState
               });
               
               // Auto-play for test partner (ID: 999)

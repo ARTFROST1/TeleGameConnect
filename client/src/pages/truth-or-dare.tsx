@@ -161,23 +161,12 @@ export default function TruthOrDare() {
   };
 
   const completeTask = async (completed: boolean) => {
-    if (!gameRoom || !currentUser || !currentQuestion) return;
+    if (!gameRoom || !currentUser || !currentQuestion || !isMyTurn) return;
+    
+    console.log('Completing task:', { completed, playerId: currentUser.id, questionId: currentQuestion.id });
     
     try {
-      // Save answer
-      await fetch('/api/game-answers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId: parseInt(roomId || '0'),
-          playerId: currentUser.id,
-          questionId: currentQuestion.id,
-          answer: completed ? 'completed' : 'skipped',
-          completed
-        })
-      });
-
-      // Update game state
+      // Update game state locally for immediate feedback
       const newGameState = {
         ...gameState,
         currentQuestionIndex: gameState.currentQuestionIndex + 1
@@ -196,33 +185,21 @@ export default function TruthOrDare() {
       turnHistory.push(`${currentUser.username}: ${currentQuestion.text} - ${completed ? 'Выполнено' : 'Пропущено'}`);
       (newGameState as any).turnHistory = turnHistory;
 
-      // Switch turn to other player
-      const nextPlayer = currentUser.id === gameRoom.player1Id ? gameRoom.player2Id : gameRoom.player1Id;
-
-      await fetch(`/api/games/${roomId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPlayer: nextPlayer,
-          gameData: newGameState
-        })
-      });
-
-      // Send turn change via WebSocket
+      // Send turn completion to server - server will handle everything including turn switch
       sendMessage({
-        type: 'turn_changed',
+        type: 'turn_completed',
         roomId: parseInt(roomId || '0'),
-        currentPlayer: nextPlayer,
-        gameState: newGameState,
+        playerId: currentUser.id,
         completed,
-        playerId: currentUser.id
+        questionId: currentQuestion.id,
+        gameState: newGameState
       });
 
-      // Reset local state
+      // Reset local state immediately for better UX
       setSelectedChoice(null);
       setCurrentQuestion(null);
       setTimeLeft(0);
-      // Don't set isMyTurn here - it will be updated via WebSocket message
+      setIsMyTurn(false); // Will be updated by server if it's my turn again
       setGameState(newGameState);
 
     } catch (error) {
