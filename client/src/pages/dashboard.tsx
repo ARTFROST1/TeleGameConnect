@@ -19,7 +19,7 @@ const avatarGradients = [
 ];
 
 export default function Dashboard() {
-  const { currentUser, partner, pendingPartnerInvitation } = useGame();
+  const { currentUser, partner, pendingPartnerInvitation, setPendingPartnerInvitation, setCurrentUser, setPartner } = useGame();
   const { toast } = useToast();
 
   const sendGameInvitation = async (gameType: 'truth_or_dare' | 'sync') => {
@@ -54,6 +54,58 @@ export default function Dashboard() {
         toast({
           title: "Ошибка",
           description: error.message || "Не удалось отправить приглашение",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Проблема с подключением к серверу",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePartnerInvitationResponse = async (invitationId: number, action: 'accept' | 'decline') => {
+    try {
+      const response = await fetch(`/api/partner-invitations/${invitationId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+
+      if (response.ok) {
+        if (action === 'accept') {
+          // Update current user with partner
+          const updatedUserResponse = await fetch(`/api/users/${currentUser?.id}`);
+          if (updatedUserResponse.ok) {
+            const updatedUser = await updatedUserResponse.json();
+            setCurrentUser(updatedUser);
+            
+            // Set partner
+            if (pendingPartnerInvitation) {
+              setPartner(pendingPartnerInvitation.user);
+            }
+          }
+          
+          toast({
+            title: "Приглашение принято!",
+            description: "Теперь вы партнёры и можете играть вместе",
+          });
+        } else {
+          toast({
+            title: "Приглашение отклонено",
+            description: "Приглашение было отклонено",
+          });
+        }
+        
+        // Clear pending invitation
+        setPendingPartnerInvitation(null);
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Ошибка",
+          description: error.message || "Не удалось ответить на приглашение",
           variant: "destructive"
         });
       }
@@ -191,31 +243,74 @@ export default function Dashboard() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30"
+                  className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-primary/30"
                 >
-                  <motion.div 
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(pendingPartnerInvitation.user.avatar) || 0]} opacity-75`}
-                  >
-                    {React.createElement(avatarIcons[parseInt(pendingPartnerInvitation.user.avatar) || 0], { 
-                      className: "h-5 w-5 text-white" 
-                    })}
-                  </motion.div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-lg">{pendingPartnerInvitation.user.username}</p>
-                    <p className="text-sm text-yellow-400 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      {pendingPartnerInvitation.type === 'sent' ? 'Ожидает подтверждения' : 'Приглашение получено'}
-                    </p>
-                  </div>
-                  <motion.div 
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="text-yellow-400"
-                  >
-                    <Clock className="h-6 w-6" />
-                  </motion.div>
+                  {pendingPartnerInvitation.type === 'sent' ? (
+                    // Sent invitation - show waiting status
+                    <div className="flex items-center gap-4">
+                      <motion.div 
+                        animate={{ rotate: [0, 5, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(pendingPartnerInvitation.user.avatar) || 0]} opacity-75`}
+                      >
+                        {React.createElement(avatarIcons[parseInt(pendingPartnerInvitation.user.avatar) || 0], { 
+                          className: "h-5 w-5 text-white" 
+                        })}
+                      </motion.div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-lg">{pendingPartnerInvitation.user.username}</p>
+                        <p className="text-sm text-yellow-400 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Ожидает подтверждения
+                        </p>
+                      </div>
+                      <motion.div 
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="text-yellow-400"
+                      >
+                        <Clock className="h-6 w-6" />
+                      </motion.div>
+                    </div>
+                  ) : (
+                    // Received invitation - show accept/decline buttons
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <motion.div 
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className={`p-3 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(pendingPartnerInvitation.user.avatar) || 0]}`}
+                        >
+                          {React.createElement(avatarIcons[parseInt(pendingPartnerInvitation.user.avatar) || 0], { 
+                            className: "h-5 w-5 text-white" 
+                          })}
+                        </motion.div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-lg">{pendingPartnerInvitation.user.username}</p>
+                          <p className="text-sm text-blue-400 flex items-center gap-2">
+                            <Heart className="h-4 w-4" />
+                            Хочет стать вашим партнёром
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => handlePartnerInvitationResponse(pendingPartnerInvitation.invitationId, 'accept')}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Heart className="h-4 w-4 mr-2" />
+                          Принять
+                        </Button>
+                        <Button 
+                          onClick={() => handlePartnerInvitationResponse(pendingPartnerInvitation.invitationId, 'decline')}
+                          variant="outline" 
+                          className="flex-1 border-red-500 text-red-500 hover:bg-red-500/10"
+                        >
+                          Отклонить
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div 

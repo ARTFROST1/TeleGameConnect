@@ -114,6 +114,61 @@ export function GameProvider({ children }: { children: ReactNode }) {
     loadPartnerAndInvitations();
   }, [currentUser?.partnerId, currentUser?.id]);
 
+  // WebSocket for real-time updates
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'join_room',
+        roomId: 1, // Global notification room
+        userId: currentUser.id
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'notification' && data.notification) {
+          const notification = data.notification;
+          
+          // Handle different notification types
+          switch (notification.type) {
+            case 'partner_invitation_received':
+              if (notification.fromUser) {
+                setPendingPartnerInvitation({
+                  user: notification.fromUser,
+                  invitationId: notification.invitationId!,
+                  type: 'received'
+                });
+              }
+              break;
+              
+            case 'partner_update':
+              if (notification.partner) {
+                setPartner(notification.partner);
+                setPendingPartnerInvitation(null);
+                // Update current user with partner
+                setCurrentUser(prev => prev ? { ...prev, partnerId: notification.partner!.id } : null);
+              }
+              break;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [currentUser?.id]);
+
   return (
     <GameContext.Provider value={{
       currentUser,

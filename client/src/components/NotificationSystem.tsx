@@ -32,17 +32,24 @@ export function NotificationSystem() {
     onMessage: (message) => {
       if (message.type === 'notification') {
         const notification = message.notification as Notification;
-        setNotifications(prev => {
-          // Prevent duplicate notifications
-          if (prev.some(n => n.id === notification.id)) return prev;
-          return [notification, ...prev].slice(0, 10); // Keep only last 10
-        });
         
-        // Show toast for new notifications
-        toast({
-          title: getNotificationTitle(notification),
-          description: getNotificationDescription(notification),
-        });
+        // Only show game-related notifications in the notification panel
+        // Partner invitations are handled directly in the dashboard partner block
+        if (notification.type === 'game_invitation' || 
+            notification.type === 'game_accepted' || 
+            notification.type === 'game_declined') {
+          setNotifications(prev => {
+            // Prevent duplicate notifications
+            if (prev.some(n => n.id === notification.id)) return prev;
+            return [notification, ...prev].slice(0, 10); // Keep only last 10
+          });
+          
+          // Show toast for new notifications
+          toast({
+            title: getNotificationTitle(notification),
+            description: getNotificationDescription(notification),
+          });
+        }
       }
     }
   });
@@ -53,22 +60,7 @@ export function NotificationSystem() {
       if (!currentUser) return;
       
       try {
-        // Load partner invitations
-        const partnerInvResponse = await fetch(`/api/partner-invitations/${currentUser.id}`);
-        if (partnerInvResponse.ok) {
-          const partnerInvitations = await partnerInvResponse.json();
-          const partnerNotifications: Notification[] = partnerInvitations.map((inv: any) => ({
-            id: `partner_inv_${inv.id}`,
-            type: 'partner_invitation' as const,
-            fromUser: inv.fromUser,
-            invitationId: inv.id,
-            createdAt: new Date(inv.createdAt)
-          }));
-          
-          setNotifications(prev => [...partnerNotifications, ...prev]);
-        }
-        
-        // Load game invitations
+        // Only load game invitations - partner invitations are handled in dashboard
         const gameInvResponse = await fetch(`/api/game-invitations/${currentUser.id}`);
         if (gameInvResponse.ok) {
           const gameInvitations = await gameInvResponse.json();
@@ -111,22 +103,23 @@ export function NotificationSystem() {
   };
 
   const getNotificationDescription = (notification: Notification) => {
+    const username = notification.fromUser?.username || 'Пользователь';
     switch (notification.type) {
       case 'partner_invitation':
-        return `${notification.fromUser.username} хочет стать партнёром`;
+        return `${username} хочет стать партнёром`;
       case 'game_invitation':
         const gameNames = { 'truth_or_dare': 'Правда или Действие', 'sync': 'Синхронизация' };
-        return `${notification.fromUser.username} приглашает в игру "${gameNames[notification.gameType as keyof typeof gameNames] || notification.gameType}"`;
+        return `${username} приглашает в игру "${gameNames[notification.gameType as keyof typeof gameNames] || notification.gameType}"`;
       case 'partner_accepted':
-        return `${notification.fromUser.username} принял ваше приглашение в партнёры`;
+        return `${username} принял ваше приглашение в партнёры`;
       case 'game_accepted':
-        return `${notification.fromUser.username} принял приглашение в игру`;
+        return `${username} принял приглашение в игру`;
       case 'partner_declined':
-        return `${notification.fromUser.username} отклонил приглашение в партнёры`;
+        return `${username} отклонил приглашение в партнёры`;
       case 'game_declined':
-        return `${notification.fromUser.username} отклонил игровое приглашение`;
+        return `${username} отклонил игровое приглашение`;
       default:
-        return notification.fromUser.username;
+        return username;
     }
   };
 
@@ -251,7 +244,7 @@ export function NotificationSystem() {
                         className="p-3 rounded-lg bg-gradient-primary/10 border border-primary/20"
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(notification.fromUser.avatar) || 0]} flex-shrink-0`}>
+                          <div className={`p-2 rounded-full bg-gradient-to-r ${avatarGradients[parseInt(notification.fromUser?.avatar || '0') || 0]} flex-shrink-0`}>
                             {notification.type === 'partner_invitation' ? (
                               <Users className="h-4 w-4 text-white" />
                             ) : (

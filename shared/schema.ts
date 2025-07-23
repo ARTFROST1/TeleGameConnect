@@ -129,6 +129,8 @@ export type GameState = {
 // Notification types for real-time updates
 export type NotificationType = 
   | 'partner_invitation'
+  | 'partner_invitation_received'
+  | 'partner_update'
   | 'game_invitation'
   | 'partner_accepted'
   | 'game_accepted'
@@ -138,8 +140,9 @@ export type NotificationType =
 export type Notification = {
   id: string;
   type: NotificationType;
-  fromUser: Pick<User, 'id' | 'username' | 'avatar'>;
+  fromUser?: Pick<User, 'id' | 'username' | 'avatar'>;
+  partner?: User;
   gameType?: string;
-  invitationId: number;
+  invitationId?: number;
   createdAt: Date;
 };

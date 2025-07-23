@@ -495,10 +495,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fromUser = await storage.getUser(invitationData.fromUserId);
       
       if (fromUser) {
-        // Send real-time notification
+        // Send real-time notification for pending invitation
         sendNotification(invitationData.toUserId, {
-          id: `partner_inv_${invitation.id}`,
-          type: 'partner_invitation',
+          id: `partner_pending_${invitation.id}`,
+          type: 'partner_invitation_received',
           fromUser: { id: fromUser.id, username: fromUser.username, avatar: fromUser.avatar },
           invitationId: invitation.id,
           createdAt: invitation.createdAt
@@ -564,14 +564,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(invitation.fromUserId, { partnerId: invitation.toUserId });
         await storage.updateUser(invitation.toUserId, { partnerId: invitation.fromUserId });
         
-        // Notify the inviter
-        const toUser = await storage.getUser(invitation.toUserId);
-        if (toUser) {
+        // Get both users for real-time updates
+        const [fromUser, toUser] = await Promise.all([
+          storage.getUser(invitation.fromUserId),
+          storage.getUser(invitation.toUserId)
+        ]);
+        
+        if (fromUser && toUser) {
+          // Send real-time partner updates to both users
           sendNotification(invitation.fromUserId, {
-            id: `partner_accept_${invitationId}`,
-            type: 'partner_accepted',
-            fromUser: { id: toUser.id, username: toUser.username, avatar: toUser.avatar },
-            invitationId,
+            id: `partner_update_${invitationId}`,
+            type: 'partner_update',
+            partner: toUser,
+            createdAt: new Date()
+          });
+          
+          sendNotification(invitation.toUserId, {
+            id: `partner_update_accepted_${invitationId}`,
+            type: 'partner_update',
+            partner: fromUser,
             createdAt: new Date()
           });
         }
