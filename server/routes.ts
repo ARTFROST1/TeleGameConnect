@@ -77,6 +77,7 @@ interface WebSocketClient {
 
 const clients = new Map<string, WebSocketClient>();
 const userConnections = new Map<number, Set<string>>();
+const roomConnections = new Map<number, Set<string>>();
 
 function broadcast(roomId: number, message: any, excludeUserId?: number) {
   Array.from(clients.values())
@@ -789,25 +790,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         };
 
-        // Send to both players via WebSocket
-        const connections = roomConnections.get(gameRoom.id);
-        if (connections) {
-          connections.forEach(ws => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(gameStartMessage));
-            }
-          });
-        }
-
-        // Also send to user sessions in case they're not in the room yet
+        // Send to both players via WebSocket - use user connections since players may not be in room yet
         [gameRoom.player1Id, gameRoom.player2Id].forEach(playerId => {
-          const userConnections = userConnections.get(playerId);
-          if (userConnections) {
-            userConnections.forEach(ws => {
-              if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify(gameStartMessage));
-              }
-            });
+          // Find all user connections for this player
+          for (const client of clients.values()) {
+            if (client.userId === playerId && client.ws.readyState === WebSocket.OPEN) {
+              client.ws.send(JSON.stringify(gameStartMessage));
+            }
           }
         });
         
@@ -925,88 +914,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   wss.on('connection', (ws: WebSocket) => {
-    let connectionId: string | null = null;
+    const connectionId = generateConnectionId();
     let userId: number | null = null;
 
     ws.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString());
         
-        switch (message.type) {
-          case 'join':
-            const { userId: msgUserId, roomId } = message;
-            connectionId = generateConnectionId();
-            userId = msgUserId;
+        if (message.type === 'join') {
+          const { userId: msgUserId, roomId } = message;
+          userId = msgUserId;
+          
+          // Store this specific connection
+          const client = { ws, userId: msgUserId, roomId, connectionId };
+          clients.set(connectionId, client);
+          addUserConnection(msgUserId, connectionId);
+          
+          // Add to room connections
+          if (!roomConnections.has(roomId)) {
+            roomConnections.set(roomId, new Set());
+          }
+          roomConnections.get(roomId)!.add(connectionId);
+          
+          console.log(`User ${msgUserId} connected with connection ${connectionId} to room ${roomId}`);
+          
+          // Get current players in room
+          const playersInRoom = Array.from(clients.values())
+            .filter(c => c.roomId === roomId)
+            .map(c => c.userId);
+          
+          console.log(`Room ${roomId}: Connected players:`, playersInRoom);
+          
+        } else if (message.type === 'join_user_session') {
+          const { userId: sessionUserId } = message;
+          userId = sessionUserId;
+          
+          // Store this connection for notifications
+          const client = { ws, userId: sessionUserId, connectionId };
+          clients.set(connectionId, client);
+          addUserConnection(sessionUserId, connectionId);
+          
+          console.log(`User ${sessionUserId} connected to user session with connection ${connectionId}`);
+          
+        } else if (message.type === 'truth_or_dare_choice') {
+          const { choice, roomId: todRoomId, playerId } = message;
+          const todRoom = await storage.getGameRoom(todRoomId);
+          
+          if (todRoom && todRoom.currentPlayer === playerId) {
+            const questions = choice === 'truth' ? 
+              truthOrDareQuestions.filter(q => q.type === 'truth') :
+              truthOrDareQuestions.filter(q => q.type === 'dare');
             
-            // Store this specific connection
-            clients.set(connectionId, { ws, userId: msgUserId, roomId, connectionId });
-            addUserConnection(msgUserId, connectionId);
+            const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
             
-            console.log(`User ${msgUserId} connected with connection ${connectionId} to room ${roomId}`);
+            const gameState: GameState = todRoom.gameData as GameState || {
+              currentQuestionIndex: 0,
+              player1Score: 0,
+              player2Score: 0
+            };
             
-            // Update room status to active if both unique players are connected
-            const room = await storage.getGameRoom(roomId);
-            if (room) {
-              const uniquePlayersConnected = new Set(
-                Array.from(clients.values())
-                  .filter(client => client.roomId === roomId)
-                  .map(client => client.userId)
-              );
-              
-              console.log(`Room ${roomId}: Connected players:`, Array.from(uniquePlayersConnected));
-              
-              if (uniquePlayersConnected.size === 2 && 
-                  uniquePlayersConnected.has(room.player1Id) && 
-                  uniquePlayersConnected.has(room.player2Id)) {
-                await storage.updateGameRoom(roomId, { status: 'active' });
-                broadcast(roomId, { type: 'game_start', room });
-                console.log(`Room ${roomId} is now active with both players connected`);
-              }
-            }
-            break;
+            gameState.currentQuestion = randomQuestion;
             
-          case 'join_user_session':
-            const { userId: sessionUserId } = message;
-            connectionId = generateConnectionId();
-            userId = sessionUserId;
+            await storage.updateGameRoom(todRoomId, { gameData: gameState });
             
-            // Store this connection for notifications
-            clients.set(connectionId, { ws, userId: sessionUserId, connectionId });
-            addUserConnection(sessionUserId, connectionId);
-            
-            console.log(`User ${sessionUserId} connected to user session with connection ${connectionId}`);
-            break;
-            
-          case 'truth_or_dare_choice':
-            const { choice, roomId: todRoomId, playerId } = message;
-            const todRoom = await storage.getGameRoom(todRoomId);
-            
-            if (todRoom && todRoom.currentPlayer === playerId) {
-              const questions = choice === 'truth' ? 
-                truthOrDareQuestions.filter(q => q.type === 'truth') :
-                truthOrDareQuestions.filter(q => q.type === 'dare');
-              
-              const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-              
-              const gameState: GameState = todRoom.gameData as GameState || {
-                currentQuestionIndex: 0,
-                player1Score: 0,
-                player2Score: 0
-              };
-              
-              gameState.currentQuestion = randomQuestion;
-              
-              await storage.updateGameRoom(todRoomId, { gameData: gameState });
-              
-              broadcast(todRoomId, {
-                type: 'question_assigned',
-                question: randomQuestion,
-                currentPlayer: playerId
-              });
-            }
-            break;
-            
-          case 'truth_or_dare_complete':
+            broadcast(todRoomId, {
+              type: 'question_assigned',
+              question: randomQuestion,
+              currentPlayer: playerId
+            });
+          }
+        } else if (message.type === 'truth_or_dare_complete') {
             const { roomId: completeRoomId, playerId: completePlayerId, completed } = message;
             const completeRoom = await storage.getGameRoom(completeRoomId);
             
@@ -1050,9 +1027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }, 2000); // 2 second delay for realistic feel
               }
             }
-            break;
-            
-          case 'sync_answer':
+        } else if (message.type === 'sync_answer') {
             const { roomId: syncRoomId, playerId: syncPlayerId, questionId, answer } = message;
             
             // Save the answer
@@ -1144,9 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
             }
-            break;
-            
-          case 'start_sync_game':
+        } else if (message.type === 'start_sync_game') {
             const { roomId: startSyncRoomId } = message;
             const startSyncRoom = await storage.getGameRoom(startSyncRoomId);
             
@@ -1178,7 +1151,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }, 2000); // 2 second delay
               }
             }
-            break;
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -1186,9 +1158,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
-      // Remove client from clients map and user connections
-      if (connectionId && userId) {
+      if (userId) {
         console.log(`User ${userId} disconnected connection ${connectionId}`);
+        const client = clients.get(connectionId);
+        if (client?.roomId) {
+          roomConnections.get(client.roomId)?.delete(connectionId);
+          if (roomConnections.get(client.roomId)?.size === 0) {
+            roomConnections.delete(client.roomId);
+          }
+        }
         clients.delete(connectionId);
         removeUserConnection(userId, connectionId);
       }
