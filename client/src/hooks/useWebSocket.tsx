@@ -31,7 +31,13 @@ export function useWebSocket({
   const [connectionId, setConnectionId] = useState<string | null>(null);
 
   const connect = useCallback(() => {
-    if (!currentUser || wsRef.current) return; // Don't connect if already connected
+    if (!currentUser) return;
+
+    // Close existing connection if any
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
 
     try {
       // In development, connect directly to the Express server port
@@ -40,7 +46,7 @@ export function useWebSocket({
       const host = isDev ? window.location.hostname + ':5000' : window.location.host;
       const wsUrl = `${protocol}//${host}/ws`;
       
-      console.log('Connecting to WebSocket:', wsUrl, 'isDev:', isDev);
+      console.log('Creating WebSocket connection to:', wsUrl, 'for user:', currentUser.id);
       
       wsRef.current = new WebSocket(wsUrl);
 
@@ -207,14 +213,20 @@ export function useWebSocket({
 
   // Connect when user is available
   useEffect(() => {
-    if (currentUser && !wsRef.current) {
+    if (currentUser) {
+      console.log('useEffect: connecting for user', currentUser.id);
       connect();
     }
 
     return () => {
-      // Don't disconnect on unmount - keep connection alive
+      // Clean up on unmount
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+        setIsConnected(false);
+      }
     };
-  }, [connect, currentUser?.id]);
+  }, [currentUser?.id, connect]);
 
   return {
     isConnected,
